@@ -4,5 +4,5 @@ echo   Tran Gia Kiet - 24110103
 echo   DEMO 8-PUZZLE BFS and DFS
 echo ========================================================
 echo Dang mo ung dung tren trinh duyet...
-start "" "index.html"
+start "" "assets/index.html"
 pause

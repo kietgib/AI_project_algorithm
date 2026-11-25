@@ -1,7 +1,7 @@
 @echo off
 echo ========================================================
 echo   Tran Gia Kiet - 24110103
-echo   DEMO 8-PUZZLE BFS and DFS
+echo   DEMO BFS and DFS
 echo ========================================================
 echo Dang mo ung dung tren trinh duyet...
 start "" "assets/index.html"

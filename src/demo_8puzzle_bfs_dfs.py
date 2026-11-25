@@ -1,8 +1,3 @@
-"""
-TRẦN GIA KIỆT - 24110103
-BÀI TOÁN 8-PUZZLE - MÔ PHỎNG THUẬT TOÁN TÌM KIẾM BFS VÀ DFS
-Đầy đủ 9 hàm chuẩn theo bài tập BTTL_BFS
-"""
 
 from collections import deque
 import time

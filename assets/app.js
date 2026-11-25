@@ -1,112 +1,149 @@
 /**
  * TRẦN GIA KIỆT - 24110103
- * Mô phỏng thuật toán BFS & DFS trên bài toán 8-Puzzle
+ * Kiến trúc Backend & Thuật toán tìm kiếm BFS & DFS đa bài toán (Multi-Problem Architecture)
  */
 
-// Trạng thái đích chuẩn của bài toán 8-Puzzle
-const GOAL_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 0];
-
-// Các cấu hình ban đầu mẫu
-const PRESETS = {
-  notebook: [1, 2, 3, 4, 0, 6, 7, 5, 8], // Đề bài trong notebook colab (2 bước giải)
-  easy1:    [1, 2, 3, 4, 5, 6, 7, 0, 8], // Cực ngắn (1 bước giải)
-  medium4:  [1, 2, 3, 0, 4, 6, 7, 5, 8], // 4 bước giải
-  medium6:  [0, 1, 3, 4, 2, 6, 7, 5, 8]  // 6 bước giải
-};
-
-// Biến trạng thái toàn cục
-let currentAlgorithm = 'BFS';
-let initialState = [...PRESETS.notebook];
-let traceSteps = [];
-let currentStepIndex = 0;
-let isPlaying = false;
-let playTimer = null;
-let stepDelay = 400; // ms
-
 // Lớp biểu diễn một Node trong không gian trạng thái
-class PuzzleNode {
+class SearchNode {
   constructor(state, parent = null, pathCost = 0, action = 'START') {
-    this.state = state; // Mảng 9 phần tử
+    this.state = state;
     this.parent = parent;
     this.pathCost = pathCost;
     this.action = action;
   }
 }
 
-// Chuyển mảng state sang chuỗi định dạng
-function formatState(state) {
-  return `(${state.join(', ')})`;
-}
+/* ========================================================
+   ĐỊNH NGHĨA CÁC BÀI TOÁN (PROBLEM REGISTRY)
+   Dễ dàng bổ sung bài toán mới chỉ cần khai báo thêm vào đây!
+   ======================================================== */
+const PROBLEMS = {
+  // 1. BÀI TOÁN 8-PUZZLE
+  '8puzzle': {
+    id: '8puzzle',
+    name: 'Bài toán 8-Puzzle',
+    subtitle: 'Xếp các ô số 1-8 và ô trống 0 về vị trí đích',
+    defaultState: [1, 2, 3, 4, 0, 6, 7, 5, 8],
+    goalState: [1, 2, 3, 4, 5, 6, 7, 8, 0],
+    presets: [
+      { id: 'notebook', name: '★ Notebook Colab (2 bước giải)', state: [1, 2, 3, 4, 0, 6, 7, 5, 8] },
+      { id: 'easy1', name: 'Rất ngắn (1 bước giải)', state: [1, 2, 3, 4, 5, 6, 7, 0, 8] },
+      { id: 'medium4', name: 'Trung bình (4 bước giải)', state: [1, 2, 3, 0, 4, 6, 7, 5, 8] },
+      { id: 'medium6', name: 'Nâng cao (6 bước giải)', state: [0, 1, 3, 4, 2, 6, 7, 5, 8] }
+    ],
+    formatState: (state) => `(${state.join(', ')})`,
+    stateToKey: (state) => state.join(','),
+    isGoal: function(state) {
+      for (let i = 0; i < 9; i++) {
+        if (state[i] !== this.goalState[i]) return false;
+      }
+      return true;
+    },
+    expand: function(node) {
+      const children = [];
+      const state = node.state;
+      const zeroIdx = state.indexOf(0);
+      const row = Math.floor(zeroIdx / 3);
+      const col = zeroIdx % 3;
 
-function stateToKey(state) {
-  return state.join(',');
-}
+      const moves = [
+        { dr: -1, dc: 0, name: 'UP' },
+        { dr: 1, dc: 0, name: 'DOWN' },
+        { dr: 0, dc: -1, name: 'LEFT' },
+        { dr: 0, dc: 1, name: 'RIGHT' }
+      ];
 
-// Kiểm tra trạng thái hiện tại có phải đích hay không
-function isGoal(state) {
-  for (let i = 0; i < 9; i++) {
-    if (state[i] !== GOAL_STATE[i]) return false;
-  }
-  return true;
-}
+      for (const m of moves) {
+        const nr = row + m.dr;
+        const nc = col + m.dc;
+        if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
+          const newIdx = nr * 3 + nc;
+          const nextState = [...state];
+          nextState[zeroIdx] = nextState[newIdx];
+          nextState[newIdx] = 0;
 
-// Sinh các trạng thái con hợp lệ (UP, DOWN, LEFT, RIGHT)
-function expandNode(node) {
-  const children = [];
-  const state = node.state;
-  const zeroIdx = state.indexOf(0);
-  const row = Math.floor(zeroIdx / 3);
-  const col = zeroIdx % 3;
+          children.push(new SearchNode(
+            nextState,
+            node,
+            node.pathCost + 1,
+            m.name
+          ));
+        }
+      }
+      return children;
+    },
+    renderVisual: function(state, container, action, parentState) {
+      container.innerHTML = '';
+      const board = document.createElement('div');
+      board.className = 'puzzle-board';
 
-  const moves = [
-    { dr: -1, dc: 0, name: 'UP' },
-    { dr: 1, dc: 0, name: 'DOWN' },
-    { dr: 0, dc: -1, name: 'LEFT' },
-    { dr: 0, dc: 1, name: 'RIGHT' }
-  ];
+      state.forEach((val, idx) => {
+        const tile = document.createElement('div');
+        tile.className = `puzzle-tile ${val === 0 ? 'empty' : ''}`;
 
-  for (const m of moves) {
-    const nr = row + m.dr;
-    const nc = col + m.dc;
-    if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
-      const newIdx = nr * 3 + nc;
-      const nextState = [...state];
-      nextState[zeroIdx] = nextState[newIdx];
-      nextState[newIdx] = 0;
+        if (parentState && val !== 0) {
+          const prevZeroIdx = parentState.indexOf(0);
+          if (idx === prevZeroIdx) tile.classList.add('moved');
+        }
 
-      children.push(new PuzzleNode(
-        nextState,
-        node,
-        node.pathCost + 1,
-        m.name
-      ));
+        if (val !== 0 && val === this.goalState[idx]) {
+          tile.classList.add('correct');
+        }
+
+        tile.textContent = val !== 0 ? val : '';
+        board.appendChild(tile);
+      });
+
+      container.appendChild(board);
+    },
+    shuffle: function(steps = 3) {
+      let curr = [...this.goalState];
+      for (let s = 0; s < steps; s++) {
+        const dummyNode = new SearchNode(curr);
+        const children = this.expand(dummyNode);
+        const rand = children[Math.floor(Math.random() * children.length)];
+        curr = [...rand.state];
+      }
+      return curr;
     }
   }
-  return children;
+
+  /* 
+   * GỢI Ý MỞ RỘNG SAU NÀY:
+   * Khi bạn nghiên cứu thêm bài toán mới (ví dụ: máy hút bụi, đong nước...),
+   * chỉ cần định nghĩa thêm vào đây:
+   * 'vacuum': { id: 'vacuum', name: '...', defaultState: [...], ... }
+   */
+};
+
+// Gắn vào window để dễ dàng mở rộng và kiểm thử
+if (typeof window !== 'undefined') {
+  window.PROBLEMS = PROBLEMS;
+  window.runSearch = runSearch;
 }
 
-// Hàm truy vết đường đi từ đích ngược về gốc
-function traceSolution(node) {
-  const path = [];
-  let curr = node;
-  while (curr !== null) {
-    path.push({
-      state: curr.state,
-      action: curr.action,
-      cost: curr.pathCost
-    });
-    curr = curr.parent;
-  }
-  path.reverse();
-  return path;
+/* ========================================================
+   TRÌNH ĐIỀU KHIỂN CHUNG (GENERIC CONTROLLER)
+   ======================================================== */
+let currentProblemId = '8puzzle';
+let currentAlgorithm = 'BFS';
+let currentState = [...PROBLEMS['8puzzle'].defaultState];
+let traceSteps = [];
+let currentStepIndex = 0;
+let isPlaying = false;
+let playTimer = null;
+let stepDelay = 400; // ms
+
+function getCurrentProblem() {
+  return PROBLEMS[currentProblemId];
 }
 
-// Thực thi thuật toán tìm kiếm và lưu lại toàn bộ vết từng bước
-function runSearch(algo, startState) {
-  const initialNode = new PuzzleNode([...startState], null, 0, 'START');
-  const frontier = [initialNode]; // Hàng đợi (BFS) hoặc Ngăn xếp (DFS)
+// Hàm tìm kiếm tổng quát áp dụng cho mọi bài toán
+function runSearch(algo, startState, problem) {
+  const initialNode = new SearchNode([...startState], null, 0, 'START');
+  const frontier = [initialNode]; // BFS: shift/push, DFS: pop/push
   const explored = new Set();
-  const frontierSet = new Set([stateToKey(startState)]);
+  const frontierSet = new Set([problem.stateToKey(startState)]);
 
   const steps = [];
   let stepCounter = 0;
@@ -114,14 +151,12 @@ function runSearch(algo, startState) {
   const maxSteps = 1500;
 
   while (frontier.length > 0 && stepCounter < maxSteps) {
-    // BFS: lấy từ đầu (shift), DFS: lấy từ cuối (pop)
     const currentNode = (algo === 'BFS') ? frontier.shift() : frontier.pop();
-    const currKey = stateToKey(currentNode.state);
+    const currKey = problem.stateToKey(currentNode.state);
     frontierSet.delete(currKey);
 
-    const goalReached = isGoal(currentNode.state);
+    const goalReached = problem.isGoal(currentNode.state);
 
-    // Snapshot các node trong Frontier dạng danh sách gọn nhẹ
     const frontierSnapshot = frontier.map(n => ({
       state: [...n.state],
       action: n.action,
@@ -144,12 +179,11 @@ function runSearch(algo, startState) {
 
     explored.add(currKey);
 
-    const children = expandNode(currentNode);
-    // Trong DFS, đảo ngược danh sách con để giữ thứ tự duyệt ưu tiên UP/DOWN/LEFT/RIGHT
+    const children = problem.expand(currentNode);
     const orderedChildren = (algo === 'DFS') ? [...children].reverse() : children;
 
     for (const child of orderedChildren) {
-      const childKey = stateToKey(child.state);
+      const childKey = problem.stateToKey(child.state);
       if (!explored.has(childKey) && !frontierSet.has(childKey)) {
         frontier.push(child);
         frontierSet.add(childKey);
@@ -159,7 +193,22 @@ function runSearch(algo, startState) {
     stepCounter++;
   }
 
-  const solutionPath = finalNode ? traceSolution(finalNode) : null;
+  // Truy vết lời giải
+  let solutionPath = null;
+  if (finalNode) {
+    solutionPath = [];
+    let curr = finalNode;
+    while (curr !== null) {
+      solutionPath.push({
+        state: curr.state,
+        action: curr.action,
+        cost: curr.pathCost
+      });
+      curr = curr.parent;
+    }
+    solutionPath.reverse();
+  }
+
   return {
     steps,
     solutionPath,
@@ -169,39 +218,53 @@ function runSearch(algo, startState) {
 }
 
 /* ========================================================
-   RENDERERS (Giao diện đơn giản, thoáng, dạng List)
+   RENDERERS & GIAO DIỆN
    ======================================================== */
 
-// 1. Vẽ bàn cờ 3x3 của Node hiện tại
-function renderPuzzleBoard(state, action, parentState) {
-  const container = document.getElementById('puzzleBoard');
-  container.innerHTML = '';
+// Cập nhật lại UI tại một bước cụ thể
+function applyStep(index) {
+  if (index < 0 || index >= traceSteps.length) return;
+  currentStepIndex = index;
+  const s = traceSteps[index];
+  const problem = getCurrentProblem();
 
-  state.forEach((val, idx) => {
-    const tile = document.createElement('div');
-    tile.className = `puzzle-tile ${val === 0 ? 'empty' : ''}`;
+  // 1. Vẽ Node
+  const container = document.getElementById('visualContainer');
+  const parentState = s.node.parent ? s.node.parent.state : null;
+  problem.renderVisual(s.node.state, container, s.action, parentState);
 
-    if (parentState && val !== 0) {
-      const prevZeroIdx = parentState.indexOf(0);
-      if (idx === prevZeroIdx) {
-        tile.classList.add('moved');
-      }
-    }
+  document.getElementById('stateTupleText').textContent = problem.formatState(s.node.state);
+  document.getElementById('nodeCostText').textContent = s.node.pathCost;
+  document.getElementById('nodeDepthText').textContent = s.node.pathCost;
+  document.getElementById('nodeActionText').textContent = s.action;
 
-    if (val !== 0 && val === GOAL_STATE[idx]) {
-      tile.classList.add('correct');
-    }
+  // 2. Vẽ Frontier dạng List
+  renderFrontierList(s.frontierSnapshot, currentAlgorithm, problem);
 
-    tile.textContent = val !== 0 ? val : '';
-    container.appendChild(tile);
-  });
+  // 3. Vẽ Endpoint dạng List
+  renderEndpoint(window.latestSolutionPath, s.isGoal, s.step, problem);
+
+  // 4. Chỉ báo tiến độ
+  document.getElementById('stepProgressIndicator').textContent = `${index + 1} / ${traceSteps.length}`;
+
+  // 5. Highlight hàng trong bảng
+  document.querySelectorAll('#traceTableBody tr').forEach(r => r.classList.remove('active-row'));
+  const activeRow = document.getElementById(`trace-step-${index}`);
+  if (activeRow) {
+    activeRow.classList.add('active-row');
+    activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  // Cập nhật nút lùi/tiến
+  document.getElementById('btnPrev').disabled = (index === 0);
+  document.getElementById('btnNext').disabled = (index === traceSteps.length - 1);
 }
 
-// 2. Hiển thị danh sách Frontier dạng List đơn giản
-function renderFrontierList(frontierSnapshot, algo) {
+// Hiển thị Frontier dạng List
+function renderFrontierList(frontierSnapshot, algo, problem) {
   const listEl = document.getElementById('frontierList');
   const countBadge = document.getElementById('frontierCountBadge');
-  
+
   countBadge.textContent = `${frontierSnapshot.length} nodes`;
   listEl.innerHTML = '';
 
@@ -218,7 +281,7 @@ function renderFrontierList(frontierSnapshot, algo) {
     row.innerHTML = `
       <div>
         <span class="list-idx">#${idx + 1}</span>
-        <span class="list-state">${formatState(item.state)}</span>
+        <span class="list-state">${problem.formatState(item.state)}</span>
       </div>
       <div style="display: flex; align-items: center; gap: 0.35rem;">
         <span class="list-action-tag">${item.action} (g=${item.cost})</span>
@@ -226,10 +289,10 @@ function renderFrontierList(frontierSnapshot, algo) {
       </div>
     `;
 
-    // Click vào item trong frontier để xem nhanh trạng thái
     row.onclick = () => {
-      renderPuzzleBoard(item.state, item.action, null);
-      document.getElementById('stateTupleText').textContent = formatState(item.state);
+      const container = document.getElementById('visualContainer');
+      problem.renderVisual(item.state, container, item.action, null);
+      document.getElementById('stateTupleText').textContent = problem.formatState(item.state);
       document.getElementById('nodeCostText').textContent = item.cost;
       document.getElementById('nodeActionText').textContent = item.action;
     };
@@ -238,8 +301,8 @@ function renderFrontierList(frontierSnapshot, algo) {
   });
 }
 
-// 3. Hiển thị Endpoint & Danh sách đường đi lời giải dạng List đơn giản
-function renderEndpoint(solutionPath, isGoalCurrent, currentStep) {
+// Hiển thị Endpoint dạng List
+function renderEndpoint(solutionPath, isGoalCurrent, currentStep, problem) {
   const statusEl = document.getElementById('endpointStatus');
   const pathListEl = document.getElementById('solutionPathList');
   const pathCountBadge = document.getElementById('solutionCountBadge');
@@ -270,7 +333,7 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep) {
     item.innerHTML = `
       <div>
         <span class="path-step-num">Step ${idx}:</span>
-        <span style="font-family: monospace;">${formatState(p.state)}</span>
+        <span style="font-family: monospace;">${problem.formatState(p.state)}</span>
       </div>
       <div>
         <span class="list-action-tag" style="${isGoalStep ? 'background:#ecfdf5; color:#059669; font-weight:bold;' : ''}">
@@ -280,8 +343,9 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep) {
     `;
 
     item.onclick = () => {
-      renderPuzzleBoard(p.state, p.action, null);
-      document.getElementById('stateTupleText').textContent = formatState(p.state);
+      const container = document.getElementById('visualContainer');
+      problem.renderVisual(p.state, container, p.action, null);
+      document.getElementById('stateTupleText').textContent = problem.formatState(p.state);
       document.getElementById('nodeCostText').textContent = p.cost;
       document.getElementById('nodeActionText').textContent = p.action;
     };
@@ -290,8 +354,8 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep) {
   });
 }
 
-// 4. Hiển thị bảng chi tiết từng Step
-function renderTraceTable(steps) {
+// Hiển thị bảng vết từng bước
+function renderTraceTable(steps, problem) {
   const tbody = document.getElementById('traceTableBody');
   tbody.innerHTML = '';
 
@@ -306,7 +370,7 @@ function renderTraceTable(steps) {
 
     tr.innerHTML = `
       <td><strong>${s.step}</strong></td>
-      <td style="color: var(--primary); font-weight: 600;">${formatState(s.node.state)}</td>
+      <td style="color: var(--primary); font-weight: 600;">${problem.formatState(s.node.state)}</td>
       <td><span class="list-action-tag">${s.action}</span></td>
       <td>${frontierBrief}</td>
       <td>${s.exploredCount} nodes</td>
@@ -323,114 +387,109 @@ function renderTraceTable(steps) {
 }
 
 /* ========================================================
-   CONTROLLER & PLAYBACK
+   SỰ KIỆN THAY ĐỔI COMBO BOX & ĐIỀU KHIỂN
    ======================================================== */
 
-// Cập nhật giao diện tại một bước cụ thể
-function applyStep(index) {
-  if (index < 0 || index >= traceSteps.length) return;
-  currentStepIndex = index;
-  const s = traceSteps[index];
-
-  // Bàn cờ & Node
-  const parentState = s.node.parent ? s.node.parent.state : null;
-  renderPuzzleBoard(s.node.state, s.action, parentState);
-
-  document.getElementById('stateTupleText').textContent = formatState(s.node.state);
-  document.getElementById('nodeCostText').textContent = s.node.pathCost;
-  document.getElementById('nodeDepthText').textContent = s.node.pathCost;
-  document.getElementById('nodeActionText').textContent = s.action;
-
-  // Frontier list
-  renderFrontierList(s.frontierSnapshot, currentAlgorithm);
-
-  // Endpoint status
-  renderEndpoint(window.latestSolutionPath, s.isGoal, s.step);
-
-  // Chỉ báo tiến độ
-  document.getElementById('stepProgressIndicator').textContent = `${index + 1} / ${traceSteps.length}`;
-
-  // Highlight hàng trong bảng
-  document.querySelectorAll('#traceTableBody tr').forEach(r => r.classList.remove('active-row'));
-  const activeRow = document.getElementById(`trace-step-${index}`);
-  if (activeRow) {
-    activeRow.classList.add('active-row');
-    activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-  }
-
-  // Cập nhật trạng thái nút
-  document.getElementById('btnPrev').disabled = (index === 0);
-  document.getElementById('btnNext').disabled = (index === traceSteps.length - 1);
-}
-
-// Khởi chạy thuật toán và reset dữ liệu hiển thị
+// Khởi chạy lại toàn bộ thuật toán
 function initializeSearch() {
   pausePlayback();
+  const problem = getCurrentProblem();
 
-  const searchResult = runSearch(currentAlgorithm, initialState);
+  const searchResult = runSearch(currentAlgorithm, currentState, problem);
   traceSteps = searchResult.steps;
   window.latestSolutionPath = searchResult.solutionPath;
 
-  renderTraceTable(traceSteps);
+  renderTraceTable(traceSteps, problem);
   applyStep(0);
 }
 
-// Chọn thuật toán BFS hoặc DFS
-function selectAlgorithm(algo) {
-  currentAlgorithm = algo;
-  document.getElementById('tabBFS').classList.toggle('active', algo === 'BFS');
-  document.getElementById('tabDFS').classList.toggle('active', algo === 'DFS');
+// 1. Khi đổi bài toán từ Combo Box
+function onProblemChange(problemId) {
+  currentProblemId = problemId;
+  const problem = getCurrentProblem();
 
-  const frontierTypeBadge = document.getElementById('frontierTypeBadge');
-  frontierTypeBadge.textContent = (algo === 'BFS') ? 'FIFO Queue' : 'LIFO Stack';
+  // Cập nhật phụ đề ứng dụng
+  document.getElementById('appSubtitle').textContent = `${problem.name} — Thuật toán tìm kiếm BFS & DFS`;
+  
+  // Cập nhật danh sách Presets tương ứng trong Combo box
+  populatePresets(problem);
 
+  currentState = [...problem.defaultState];
+  document.getElementById('customStateInput').value = problem.defaultState.join(', ');
+  
   initializeSearch();
 }
 
-// Chọn cấu hình mẫu
-function applyPreset(presetKey) {
+// 2. Khi đổi thuật toán từ Combo Box (Yêu cầu chính)
+function onAlgorithmChange(algoName) {
+  currentAlgorithm = algoName;
+  const badge = document.getElementById('frontierTypeBadge');
+  badge.textContent = (algoName === 'BFS') ? 'FIFO Queue' : 'LIFO Stack';
+  initializeSearch();
+}
+
+// 3. Khi đổi trạng thái mẫu từ Combo Box
+function onPresetChange(presetId) {
+  const problem = getCurrentProblem();
   const customBox = document.getElementById('customInputBox');
-  if (presetKey === 'custom') {
+
+  if (presetId === 'custom') {
     customBox.style.display = 'flex';
     return;
   }
   customBox.style.display = 'none';
 
-  if (PRESETS[presetKey]) {
-    initialState = [...PRESETS[presetKey]];
+  const preset = problem.presets.find(p => p.id === presetId);
+  if (preset) {
+    currentState = [...preset.state];
+    document.getElementById('customStateInput').value = preset.state.join(', ');
     initializeSearch();
   }
 }
 
-// Áp dụng mảng nhập tự do
+// Điền các option presets vào combo box
+function populatePresets(problem) {
+  const select = document.getElementById('presetSelect');
+  select.innerHTML = '';
+
+  problem.presets.forEach(p => {
+    const opt = document.createElement('option');
+    opt.value = p.id;
+    opt.textContent = p.name;
+    select.appendChild(opt);
+  });
+
+  const customOpt = document.createElement('option');
+  customOpt.value = 'custom';
+  customOpt.textContent = '✏ Tự nhập trạng thái';
+  select.appendChild(customOpt);
+}
+
+// Nhập mảng tự do
 function setCustomState() {
-  const val = document.getElementById('customStateInput').value;
+  const problem = getCurrentProblem();
+  const val = document.getElementById('customStateInput').value.trim();
+  
   const parts = val.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
   if (parts.length !== 9) {
-    alert('Vui lòng nhập đủ 9 số từ 0 đến 8!');
+    alert('Vui lòng nhập đúng 9 chữ số từ 0 đến 8 cách nhau bởi dấu phẩy!');
     return;
   }
-  initialState = parts;
+  currentState = parts;
   initializeSearch();
 }
 
-// Xáo trộn ngẫu nhiên hợp lệ (solvable)
-function shuffleInitialState(steps = 3) {
-  let curr = [...GOAL_STATE];
-  for (let s = 0; s < steps; s++) {
-    const dummyNode = new PuzzleNode(curr);
-    const children = expandNode(dummyNode);
-    const rand = children[Math.floor(Math.random() * children.length)];
-    curr = [...rand.state];
-  }
-  initialState = curr;
+// Đổi đề / Xáo đề ngẫu nhiên
+function shuffleCurrentProblem() {
+  const problem = getCurrentProblem();
+  currentState = problem.shuffle();
   document.getElementById('presetSelect').value = 'custom';
   document.getElementById('customInputBox').style.display = 'flex';
-  document.getElementById('customStateInput').value = curr.join(', ');
+  document.getElementById('customStateInput').value = currentState.join(', ');
   initializeSearch();
 }
 
-// Playback: Tự động chạy
+// Playback Controls
 function togglePlayPause() {
   if (isPlaying) {
     pausePlayback();
@@ -485,12 +544,6 @@ function resetPlayback() {
   applyStep(0);
 }
 
-function jumpToEnd() {
-  pausePlayback();
-  applyStep(traceSteps.length - 1);
-}
-
-// Điều chỉnh tốc độ
 function updateSpeed(val) {
   stepDelay = parseInt(val, 10);
   document.getElementById('speedText').textContent = `${stepDelay} ms`;
@@ -509,18 +562,18 @@ function closeModal(id) {
   document.getElementById(id).style.display = 'none';
 }
 
-// Sao chép bảng ra Markdown
 function copyTableData() {
+  const problem = getCurrentProblem();
   let md = `| Step | Node State | Action | Explored | Goal |\n|---|---|---|---|---|\n`;
   traceSteps.forEach(s => {
-    md += `| ${s.step} | ${formatState(s.node.state)} | ${s.action} | ${s.exploredCount} | ${s.isGoal ? 'TRUE' : 'False'} |\n`;
+    md += `| ${s.step} | ${problem.formatState(s.node.state)} | ${s.action} | ${s.exploredCount} | ${s.isGoal ? 'TRUE' : 'False'} |\n`;
   });
   navigator.clipboard.writeText(md).then(() => {
     alert('Đã sao chép bảng Markdown vào bộ nhớ tạm!');
   });
 }
 
-// Phím tắt điều khiển (Space: Play/Pause, Phím mũi tên: Tiến/Lùi)
+// Phím tắt điều khiển
 window.addEventListener('keydown', (e) => {
   if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
   if (e.code === 'Space') {
@@ -533,7 +586,8 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Khởi chạy khi tài liệu tải xong
+// Khởi chạy
 window.onload = function() {
+  populatePresets(getCurrentProblem());
   initializeSearch();
 };

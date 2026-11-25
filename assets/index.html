@@ -3,8 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Trần Gia Kiệt - 24110103 | Demo 8-Puzzle BFS & DFS</title>
-  <link rel="stylesheet" href="assets/style.css">
+  <title>Trần Gia Kiệt - 24110103 | Mô phỏng tìm kiếm BFS & DFS</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
@@ -16,7 +16,7 @@
           TRẦN GIA KIỆT 
           <span class="student-badge">MSSV: 24110103</span>
         </h1>
-        <p class="app-subtitle">Bài toán 8-Puzzle — Thuật toán tìm kiếm BFS & DFS (Mô phỏng từng bước)</p>
+        <p class="app-subtitle" id="appSubtitle">Bài toán 8-Puzzle — Thuật toán tìm kiếm BFS & DFS</p>
       </div>
 
       <div class="header-actions">
@@ -33,39 +33,43 @@
   <!-- Thân ứng dụng -->
   <main>
 
-    <!-- Hàng điều khiển & Cài đặt tinh gọn -->
+    <!-- Hàng điều khiển & Cài đặt tinh gọn với các Combo Box -->
     <section class="panel control-row">
-      <!-- 1. Chọn thuật toán -->
+      <!-- 1. Combo Box Chọn Bài toán -->
       <div class="control-item">
-        <span class="control-label">Thuật toán:</span>
-        <div class="tab-group">
-          <button class="tab-btn active" id="tabBFS" onclick="selectAlgorithm('BFS')">BFS (Hàng đợi)</button>
-          <button class="tab-btn" id="tabDFS" onclick="selectAlgorithm('DFS')">DFS (Ngăn xếp)</button>
-        </div>
+        <span class="control-label">Bài toán:</span>
+        <select id="problemSelect" onchange="onProblemChange(this.value)">
+          <option value="8puzzle" selected>🧩 Bài toán 8-Puzzle</option>
+        </select>
       </div>
 
-      <!-- 2. Trạng thái ban đầu -->
+      <!-- 2. Combo Box Chọn Thuật toán (BFS & DFS) -->
+      <div class="control-item">
+        <span class="control-label">Thuật toán:</span>
+        <select id="algoSelect" onchange="onAlgorithmChange(this.value)">
+          <option value="BFS" selected>BFS (Hàng đợi FIFO)</option>
+          <option value="DFS">DFS (Ngăn xếp LIFO)</option>
+        </select>
+      </div>
+
+      <!-- 3. Combo Box Chọn Trạng thái mẫu (Presets) -->
       <div class="control-item">
         <span class="control-label">Đề bài:</span>
-        <select id="presetSelect" onchange="applyPreset(this.value)">
-          <option value="notebook">★ Notebook Colab (2 bước)</option>
-          <option value="easy1">Rất dễ (1 bước)</option>
-          <option value="medium4">Trung bình (4 bước)</option>
-          <option value="medium6">Nâng cao (6 bước)</option>
-          <option value="custom">Tự nhập mảng</option>
+        <select id="presetSelect" onchange="onPresetChange(this.value)">
+          <!-- Nạp tự động theo bài toán -->
         </select>
-        <button class="btn" onclick="shuffleInitialState(3)" title="Xáo trộn ngẫu nhiên 3 bước có nghiệm">
+        <button class="btn" onclick="shuffleCurrentProblem()" title="Đổi đề bài / Xáo trạng thái">
           🎲 Đổi đề
         </button>
       </div>
 
-      <!-- Khung nhập mảng tùy chỉnh (ẩn mặc định) -->
+      <!-- Khung nhập mảng tùy chỉnh (chỉ hiện khi chọn 'Tự nhập') -->
       <div class="control-item" id="customInputBox" style="display: none;">
-        <input type="text" id="customStateInput" value="1, 2, 3, 4, 0, 6, 7, 5, 8" style="width: 170px;">
+        <input type="text" id="customStateInput" value="1, 2, 3, 4, 0, 6, 7, 5, 8" style="width: 160px;">
         <button class="btn btn-primary" onclick="setCustomState()">Đặt</button>
       </div>
 
-      <!-- 3. Bộ nút Playback & Tốc độ -->
+      <!-- 4. Bộ nút Playback -->
       <div class="control-item">
         <button class="btn btn-primary" id="btnPlay" onclick="togglePlayPause()">
           <span id="playIcon">▶</span> <span id="playText">Chạy</span>
@@ -75,7 +79,7 @@
         <button class="btn btn-danger" onclick="resetPlayback()" title="Quay về bước 0">🔄</button>
       </div>
 
-      <!-- 4. Nút điều chỉnh tốc độ run (Yêu cầu chính) -->
+      <!-- 5. Nút điều chỉnh tốc độ run -->
       <div class="control-item">
         <div class="speed-box">
           <span class="control-label" style="font-size: 0.75rem;">Tốc độ:</span>
@@ -84,7 +88,7 @@
         </div>
       </div>
 
-      <!-- Chỉ báo bước hiện tại -->
+      <!-- Chỉ báo tiến độ bước -->
       <div class="control-item">
         <span style="font-size: 0.8rem; font-weight: 700; color: var(--primary);">
           Bước: <span id="stepProgressIndicator">0 / 0</span>
@@ -104,10 +108,9 @@
           <span class="box-badge" id="nodeActionText">START</span>
         </div>
         <div class="box-body">
-          <div class="board-wrap">
-            <div class="puzzle-board" id="puzzleBoard">
-              <!-- 9 ô số hiển thị tự động -->
-            </div>
+          <!-- Vùng trực quan hóa linh hoạt (Bàn cờ 8-puzzle hoặc Phòng máy hút bụi) -->
+          <div class="board-wrap" id="visualContainer">
+            <!-- Render tự động -->
           </div>
 
           <div style="display: flex; flex-direction: column; gap: 0.35rem;">
@@ -127,7 +130,7 @@
         </div>
       </div>
 
-      <!-- CỘT 2: FRONTIER (Tập biên - Thiết kế dạng List đơn giản) -->
+      <!-- CỘT 2: FRONTIER (Tập biên - Dạng List đơn giản) -->
       <div class="box">
         <div class="box-header">
           <span class="box-title">
@@ -141,13 +144,13 @@
         <div class="box-body">
           <div class="clean-list-container">
             <div class="list-scroll" id="frontierList">
-              <!-- Danh sách các node đang chờ trong Frontier dạng List -->
+              <!-- Danh sách Frontier dạng List -->
             </div>
           </div>
         </div>
       </div>
 
-      <!-- CỘT 3: ENDPOINT (Đích & Lời giải - Thiết kế dạng List đơn giản) -->
+      <!-- CỘT 3: ENDPOINT (Đích & Lời giải - Dạng List đơn giản) -->
       <div class="box">
         <div class="box-header">
           <span class="box-title">
@@ -162,7 +165,7 @@
             <span>is_goal: False</span>
           </div>
 
-          <!-- Danh sách từng bước của đường đi lời giải -->
+          <!-- Danh sách đường đi lời giải dạng List -->
           <div class="clean-list-container" style="height: 180px;">
             <div class="list-scroll" id="solutionPathList">
               <!-- Danh sách các bước lời giải dạng List -->
@@ -173,7 +176,7 @@
 
     </section>
 
-    <!-- Bảng liệt kê chi tiết từng Step (Search Trace Table) -->
+    <!-- Bảng chi tiết từng Step (Search Trace Table) -->
     <section class="table-panel">
       <div class="table-header">
         <span class="table-title">
@@ -197,7 +200,7 @@
             </tr>
           </thead>
           <tbody id="traceTableBody">
-            <!-- Danh sách từng step được nạp tự động -->
+            <!-- Danh sách từng step nạp tự động -->
           </tbody>
         </table>
       </div>
@@ -209,7 +212,7 @@
   <div class="modal-backdrop" id="compareModal">
     <div class="modal-box">
       <div class="modal-head">
-        <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary);">So sánh BFS và DFS trên bài toán 8-Puzzle</h3>
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary);">So sánh BFS và DFS</h3>
         <button class="btn" onclick="closeModal('compareModal')" style="padding: 0.2rem 0.5rem;">✕</button>
       </div>
       <div class="modal-content">
@@ -233,20 +236,17 @@
               <td><span style="color:#dc2626; font-weight:bold;">Không tối ưu</span> (dễ vòng vèo)</td>
             </tr>
             <tr>
-              <td><strong>Số bước giải (Đề colab)</strong></td>
-              <td>2 bước di chuyển</td>
-              <td>> 300 bước di chuyển</td>
+              <td><strong>Cơ chế mở rộng</strong></td>
+              <td>Duyệt theo từng tầng độ sâu</td>
+              <td>Đi sâu theo một nhánh trước</td>
             </tr>
             <tr>
-              <td><strong>Cơ chế mở rộng</strong></td>
-              <td>Duyệt theo tầng độ sâu</td>
-              <td>Lao sâu xuống một nhánh trước</td>
+              <td><strong>Đồ thị có chu trình</strong></td>
+              <td>Cần tập <code>explored</code></td>
+              <td>Cần tập <code>explored</code> để tránh lặp vô tận</td>
             </tr>
           </tbody>
         </table>
-        <p style="font-size: 0.8rem; color: var(--text-muted);">
-          * Lưu ý: Trên đồ thị có chu trình như 8-Puzzle, cả hai thuật toán đều cần duy trì tập `explored` để tránh lặp vô tận.
-        </p>
       </div>
     </div>
   </div>
@@ -255,7 +255,7 @@
   <div class="modal-backdrop" id="codeModal">
     <div class="modal-box">
       <div class="modal-head">
-        <h3 style="font-size: 1rem; font-weight: 700; color: var(--success);">Mã nguồn Python 9 hàm chuẩn (Trần Gia Kiệt - 24110103)</h3>
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--success);">Kiến trúc 9 hàm chuẩn (Trần Gia Kiệt - 24110103)</h3>
         <button class="btn" onclick="closeModal('codeModal')" style="padding: 0.2rem 0.5rem;">✕</button>
       </div>
       <div class="modal-content">
@@ -271,13 +271,13 @@
 # 9. class Problem(initial_state, goal_state)
         </pre>
         <p style="font-size: 0.8rem; color: var(--text-muted); margin-top: 0.5rem;">
-          File mã nguồn Python hoàn chỉnh nằm tại: <code>demo_8puzzle_bfs_dfs.py</code>
+          File mã nguồn Python hoàn chỉnh nằm tại: <code>src/demo_8puzzle_bfs_dfs.py</code>
         </p>
       </div>
     </div>
   </div>
 
-  <!-- Liên kết file JavaScript trong assets -->
-  <script src="assets/app.js"></script>
+  <!-- Liên kết JavaScript cùng thư mục assets -->
+  <script src="app.js"></script>
 </body>
 </html>

@@ -1,4 +1,3 @@
-# -*- coding: utf-8 -*-
 """
 TRẦN GIA KIỆT - 24110103
 BÀI TOÁN 8-PUZZLE - MÔ PHỎNG THUẬT TOÁN TÌM KIẾM BFS VÀ DFS
@@ -8,28 +7,19 @@ BÀI TOÁN 8-PUZZLE - MÔ PHỎNG THUẬT TOÁN TÌM KIẾM BFS VÀ DFS
 from collections import deque
 import time
 
-# -------------------------------------------------------------
-# 1. Định nghĩa lớp Node
-# -------------------------------------------------------------
 class Node:
     def __init__(self, state, parent=None, path_cost=0, action="START"):
-        self.state = state          # Tuple 9 số (0 đến 8)
-        self.parent = parent        # Node cha
-        self.path_cost = path_cost  # Chi phí đường đi g(n)
-        self.action = action        # Hành động dẫn tới node này (UP, DOWN, LEFT, RIGHT)
+        self.state = state          
+        self.parent = parent        
+        self.path_cost = path_cost  
+        self.action = action        
 
     def __repr__(self):
         return f"Node(state={self.state}, cost={self.path_cost}, action={self.action})"
 
-# -------------------------------------------------------------
-# 2. Hàm kiểm tra đích (is_goal)
-# -------------------------------------------------------------
 def is_goal(node, goal_state):
     return node.state == goal_state
 
-# -------------------------------------------------------------
-# 3. Hàm khởi tạo Frontier
-# -------------------------------------------------------------
 def create_queue():
     """Tạo hàng đợi cho BFS (FIFO)"""
     return deque()
@@ -38,16 +28,10 @@ def create_stack():
     """Tạo ngăn xếp cho DFS (LIFO)"""
     return []
 
-# -------------------------------------------------------------
-# 4. Hàm thêm phần tử vào Frontier (enqueue / push)
-# -------------------------------------------------------------
 def enqueue(frontier, node):
     """Thêm vào cuối hàng đợi/ngăn xếp"""
     frontier.append(node)
 
-# -------------------------------------------------------------
-# 5. Hàm lấy phần tử khỏi Frontier (dequeue / pop)
-# -------------------------------------------------------------
 def dequeue(frontier):
     """Lấy phần tử đầu cho BFS (FIFO)"""
     return frontier.popleft()
@@ -56,15 +40,9 @@ def pop(frontier):
     """Lấy phần tử cuối cho DFS (LIFO)"""
     return frontier.pop()
 
-# -------------------------------------------------------------
-# 6. Hàm kiểm tra Frontier rỗng
-# -------------------------------------------------------------
 def is_empty(frontier):
     return len(frontier) == 0
 
-# -------------------------------------------------------------
-# 7. Hàm sinh nút con (expand)
-# -------------------------------------------------------------
 def expand(node):
     children = []
     state = node.state
@@ -73,7 +51,6 @@ def expand(node):
     row = zero_index // 3
     col = zero_index % 3
 
-    # Các hành động có thể: Lên, Xuống, Trái, Phải
     actions = [
         (-1, 0, "UP"),
         (1, 0, "DOWN"),
@@ -89,7 +66,6 @@ def expand(node):
             new_index = new_row * 3 + new_col
 
             new_state = list(state)
-            # Hoán đổi vị trí ô trống 0 với ô kề bên
             new_state[zero_index], new_state[new_index] = (
                 new_state[new_index],
                 new_state[zero_index]
@@ -108,9 +84,6 @@ def expand(node):
 
     return children
 
-# -------------------------------------------------------------
-# 8. Hàm truy vết lời giải (trace_solution)
-# -------------------------------------------------------------
 def trace_solution(node):
     path = []
     while node is not None:
@@ -119,9 +92,6 @@ def trace_solution(node):
     path.reverse()
     return path
 
-# -------------------------------------------------------------
-# 9. Lớp định nghĩa bài toán (Problem)
-# -------------------------------------------------------------
 class Problem:
     def __init__(self, initial_state, goal_state):
         self.initial_state = initial_state
@@ -133,9 +103,6 @@ class Problem:
     def expand(self, node):
         return expand(node)
 
-# -------------------------------------------------------------
-# Thuật toán BFS (Breadth-First Search)
-# -------------------------------------------------------------
 def BFS(problem):
     initial_node = Node(problem.initial_state)
     frontier = create_queue()
@@ -149,7 +116,6 @@ def BFS(problem):
         current_node = dequeue(frontier)
         frontier_set.remove(current_node.state)
 
-        # Ghi nhận vết tìm kiếm (Trace)
         trace.append({
             "step": step,
             "node": current_node.state,
@@ -175,9 +141,6 @@ def BFS(problem):
 
     return None, trace
 
-# -------------------------------------------------------------
-# Thuật toán DFS (Depth-First Search)
-# -------------------------------------------------------------
 def DFS(problem, max_depth=50):
     initial_node = Node(problem.initial_state)
     frontier = create_stack()
@@ -205,7 +168,6 @@ def DFS(problem, max_depth=50):
 
         explored.add(current_node.state)
 
-        # Trong DFS, đảo ngược danh sách con để giữ thứ tự duyệt ưu tiên
         children = problem.expand(current_node)
         children.reverse()
 
@@ -218,17 +180,11 @@ def DFS(problem, max_depth=50):
 
     return None, trace
 
-# -------------------------------------------------------------
-# Hàm in bàn cờ 3x3 trực quan
-# -------------------------------------------------------------
 def print_board(state):
     for i in range(0, 9, 3):
         row = state[i:i+3]
         print("  " + " ".join(f"[{x if x != 0 else ' '}]" for x in row))
 
-# -------------------------------------------------------------
-# Hàm hiển thị kết quả chi tiết
-# -------------------------------------------------------------
 def display_results(algo_name, solution, trace):
     print("=" * 60)
     print(f"  KẾT QUẢ THUẬT TOÁN: {algo_name}")
@@ -254,16 +210,13 @@ def display_results(algo_name, solution, trace):
     else:
         print("\n[-] KHÔNG TÌM THẤY LỜI GIẢI!")
 
-# -------------------------------------------------------------
-# Demo chạy chương trình
-# -------------------------------------------------------------
+
 if __name__ == "__main__":
     print("=========================================================")
     print("  TRẦN GIA KIỆT - 24110103")
-    print("  DEMO THUẬT TOÁN BFS VÀ DFS - BÀI TOÁN 8-PUZZLE")
+    print("  DEMO THUẬT TOÁN")
     print("=========================================================")
 
-    # Trạng thái trong bài tập Colab
     initial_state = (1, 2, 3,
                      4, 0, 6,
                      7, 5, 8)

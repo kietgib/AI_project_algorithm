@@ -21,10 +21,10 @@
 
       <div class="header-actions">
         <button class="btn" onclick="openModal('compareModal')">
-          📊 So sánh BFS vs DFS
+           So sánh BFS vs DFS
         </button>
         <button class="btn" onclick="openModal('codeModal')">
-          💻 9 Hàm Python (Colab)
+           9 Hàm Python (Colab)
         </button>
       </div>
     </div>
@@ -39,7 +39,7 @@
       <div class="control-item">
         <span class="control-label">Bài toán:</span>
         <select id="problemSelect" onchange="onProblemChange(this.value)">
-          <option value="8puzzle" selected>🧩 Bài toán 8-Puzzle</option>
+          <option value="8puzzle" selected> Bài toán 8-Puzzle</option>
         </select>
       </div>
 
@@ -61,9 +61,14 @@
       </div>
 
       <!-- Khung nhập mảng tùy chỉnh (chỉ hiện khi chọn 'Tự nhập') -->
-      <div class="control-item" id="customInputBox" style="display: none;">
-        <input type="text" id="customStateInput" value="1, 2, 3, 4, 0, 6, 7, 5, 8" style="width: 160px;">
-        <button class="btn btn-primary" onclick="setCustomState()">Đặt</button>
+      <div class="control-item" id="customInputBox" style="display: none; align-items: center; gap: 0.35rem;">
+        <input type="text" id="customStateInput" value="1, 2, 3, 4, 0, 6, 7, 5, 8" 
+               placeholder="1, 2, 3, 4, 0, 6, 7, 5, 8"
+               title="Nhập 9 số (từ 0 đến 8) rồi bấm Áp dụng hoặc ấn Enter"
+               onkeydown="if(event.key === 'Enter') setCustomState()"
+               style="width: 190px; padding: 4px 8px; font-family: monospace; font-size: 0.8rem;">
+        <button class="btn btn-primary" onclick="setCustomState()" title="Áp dụng trạng thái này">Áp dụng</button>
+        <button class="btn" onclick="generateRandomSolvable()" title="Tự động tạo 1 trạng thái ngẫu nhiên có lời giải">🎲 Trộn</button>
       </div>
 
       <!-- 4. Bộ nút Playback -->
@@ -73,7 +78,8 @@
         </button>
         <button class="btn" id="btnPrev" onclick="stepPrev()" title="Lùi 1 bước">⏮</button>
         <button class="btn" id="btnNext" onclick="stepNext()" title="Tiến 1 bước">⏭</button>
-        <button class="btn btn-danger" onclick="resetPlayback()" title="Quay về bước 0">🔄</button>
+        <button class="btn" onclick="jumpToGoal()" title="Nhảy trực tiếp đến bước tìm thấy Đích (True)">🏁 Đích</button>
+        <button class="btn btn-danger" onclick="resetPlayback()" title="Quay về bước 1">🔄</button>
       </div>
 
       <!-- 5. Nút điều chỉnh tốc độ run -->
@@ -158,7 +164,7 @@
         <div class="box-body">
           <!-- Trạng thái đích -->
           <div class="endpoint-status status-searching" id="endpointStatus">
-            <span>⏳ Đang duyệt tìm kiếm...</span>
+            <span> Đang duyệt tìm kiếm...</span>
             <span>is_goal: False</span>
           </div>
 
@@ -177,10 +183,10 @@
     <section class="table-panel">
       <div class="table-header">
         <span class="table-title">
-          📋 BẢNG VẾT DUYỆT TỪNG STEP (Nhấp chuột vào hàng bất kỳ để xem lại)
+           BẢNG VẾT DUYỆT TỪNG STEP (Nhấp chuột vào hàng bất kỳ để xem lại)
         </span>
         <button class="btn" style="font-size: 0.75rem; padding: 0.3rem 0.6rem;" onclick="copyTableData()">
-          📋 Sao chép Markdown
+           Sao chép Markdown
         </button>
       </div>
 
@@ -206,7 +212,6 @@
 
   </main>
 
-  <!-- MODAL: So sánh BFS vs DFS -->
   <div class="modal-backdrop" id="compareModal">
     <div class="modal-box">
       <div class="modal-head">
@@ -249,7 +254,6 @@
     </div>
   </div>
 
-  <!-- MODAL: Xem 9 hàm Python -->
   <div class="modal-backdrop" id="codeModal">
     <div class="modal-box">
       <div class="modal-head">
@@ -275,7 +279,6 @@
     </div>
   </div>
 
-  <!-- Liên kết JavaScript cùng thư mục assets -->
   <script src="app.js"></script>
 </body>
 </html>

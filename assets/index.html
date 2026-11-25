@@ -56,11 +56,8 @@
       <div class="control-item">
         <span class="control-label">Đề bài:</span>
         <select id="presetSelect" onchange="onPresetChange(this.value)">
-          <!-- Nạp tự động theo bài toán -->
+          <!-- Nạp tự động: Đề bài mặc định & Tự nhập trạng thái -->
         </select>
-        <button class="btn" onclick="shuffleCurrentProblem()" title="Đổi đề bài / Xáo trạng thái">
-          🎲 Đổi đề
-        </button>
       </div>
 
       <!-- Khung nhập mảng tùy chỉnh (chỉ hiện khi chọn 'Tự nhập') -->
@@ -194,8 +191,9 @@
               <th style="width: 60px;">Step</th>
               <th>Node đang xét (State)</th>
               <th style="width: 100px;">Hành động</th>
+              <th style="width: 100px;">Path Cost</th>
               <th>Frontier</th>
-              <th style="width: 110px;">Explored</th>
+              <th style="width: 100px;">Explored</th>
               <th style="width: 120px;">Kiểm tra Đích</th>
             </tr>
           </thead>

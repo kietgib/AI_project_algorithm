@@ -1,24 +1,22 @@
 /**
  * TRẦN GIA KIỆT - 24110103
- * Kiến trúc Backend & Thuật toán tìm kiếm BFS & DFS đa bài toán (Multi-Problem Architecture)
+ * Mô phỏng thuật toán tìm kiếm BFS & DFS trên bài toán 8-Puzzle
  */
 
-// Lớp biểu diễn một Node trong không gian trạng thái
+// Lớp biểu diễn một Node trong cây tìm kiếm
 class SearchNode {
   constructor(state, parent = null, pathCost = 0, action = 'START') {
     this.state = state;
     this.parent = parent;
-    this.pathCost = pathCost;
+    this.pathCost = pathCost; // Chi phí đường đi: mỗi bước di chuyển tăng 1
     this.action = action;
   }
 }
 
 /* ========================================================
-   ĐỊNH NGHĨA CÁC BÀI TOÁN (PROBLEM REGISTRY)
-   Dễ dàng bổ sung bài toán mới chỉ cần khai báo thêm vào đây!
+   ĐỊNH NGHĨA BÀI TOÁN 8-PUZZLE
    ======================================================== */
 const PROBLEMS = {
-  // 1. BÀI TOÁN 8-PUZZLE
   '8puzzle': {
     id: '8puzzle',
     name: 'Bài toán 8-Puzzle',
@@ -26,10 +24,7 @@ const PROBLEMS = {
     defaultState: [1, 2, 3, 4, 0, 6, 7, 5, 8],
     goalState: [1, 2, 3, 4, 5, 6, 7, 8, 0],
     presets: [
-      { id: 'notebook', name: '★ Notebook Colab (2 bước giải)', state: [1, 2, 3, 4, 0, 6, 7, 5, 8] },
-      { id: 'easy1', name: 'Rất ngắn (1 bước giải)', state: [1, 2, 3, 4, 5, 6, 7, 0, 8] },
-      { id: 'medium4', name: 'Trung bình (4 bước giải)', state: [1, 2, 3, 0, 4, 6, 7, 5, 8] },
-      { id: 'medium6', name: 'Nâng cao (6 bước giải)', state: [0, 1, 3, 4, 2, 6, 7, 5, 8] }
+      { id: 'default', name: '★ Đề bài mặc định', state: [1, 2, 3, 4, 0, 6, 7, 5, 8] }
     ],
     formatState: (state) => `(${state.join(', ')})`,
     stateToKey: (state) => state.join(','),
@@ -39,6 +34,7 @@ const PROBLEMS = {
       }
       return true;
     },
+    // Sinh các nút con theo ĐÚNG THỨ TỰ: UP -> DOWN -> LEFT -> RIGHT
     expand: function(node) {
       const children = [];
       const state = node.state;
@@ -46,14 +42,15 @@ const PROBLEMS = {
       const row = Math.floor(zeroIdx / 3);
       const col = zeroIdx % 3;
 
-      const moves = [
+      // Thứ tự hành động chuẩn xác: UP (-1,0), DOWN (1,0), LEFT (0,-1), RIGHT (0,1)
+      const actions = [
         { dr: -1, dc: 0, name: 'UP' },
         { dr: 1, dc: 0, name: 'DOWN' },
         { dr: 0, dc: -1, name: 'LEFT' },
         { dr: 0, dc: 1, name: 'RIGHT' }
       ];
 
-      for (const m of moves) {
+      for (const m of actions) {
         const nr = row + m.dr;
         const nc = col + m.dc;
         if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
@@ -62,6 +59,7 @@ const PROBLEMS = {
           nextState[zeroIdx] = nextState[newIdx];
           nextState[newIdx] = 0;
 
+          // Mỗi lần di chuyển path_cost tăng đúng 1 bước
           children.push(new SearchNode(
             nextState,
             node,
@@ -81,11 +79,13 @@ const PROBLEMS = {
         const tile = document.createElement('div');
         tile.className = `puzzle-tile ${val === 0 ? 'empty' : ''}`;
 
+        // Đánh dấu ô vừa di chuyển từ vị trí ô trống của trạng thái trước
         if (parentState && val !== 0) {
           const prevZeroIdx = parentState.indexOf(0);
           if (idx === prevZeroIdx) tile.classList.add('moved');
         }
 
+        // Đánh dấu ô nằm đúng vị trí đích
         if (val !== 0 && val === this.goalState[idx]) {
           tile.classList.add('correct');
         }
@@ -95,40 +95,25 @@ const PROBLEMS = {
       });
 
       container.appendChild(board);
-    },
-    shuffle: function(steps = 3) {
-      let curr = [...this.goalState];
-      for (let s = 0; s < steps; s++) {
-        const dummyNode = new SearchNode(curr);
-        const children = this.expand(dummyNode);
-        const rand = children[Math.floor(Math.random() * children.length)];
-        curr = [...rand.state];
-      }
-      return curr;
     }
   }
-
-  /* 
-   * GỢI Ý MỞ RỘNG SAU NÀY:
-   * Khi bạn nghiên cứu thêm bài toán mới (ví dụ: máy hút bụi, đong nước...),
-   * chỉ cần định nghĩa thêm vào đây:
-   * 'vacuum': { id: 'vacuum', name: '...', defaultState: [...], ... }
-   */
 };
 
-// Gắn vào window để dễ dàng mở rộng và kiểm thử
 if (typeof window !== 'undefined') {
   window.PROBLEMS = PROBLEMS;
   window.runSearch = runSearch;
 }
 
 /* ========================================================
-   TRÌNH ĐIỀU KHIỂN CHUNG (GENERIC CONTROLLER)
+   BIẾN TOÀN CỤC & ĐIỀU KHIỂN
    ======================================================== */
 let currentProblemId = '8puzzle';
 let currentAlgorithm = 'BFS';
 let currentState = [...PROBLEMS['8puzzle'].defaultState];
-let traceSteps = [];
+
+let traceSteps = [];          // Danh sách các bước duyệt (Step 1, 2, 3...)
+let solutionPath = [];        // Danh sách các bước đường đi lời giải
+
 let currentStepIndex = 0;
 let isPlaying = false;
 let playTimer = null;
@@ -138,25 +123,29 @@ function getCurrentProblem() {
   return PROBLEMS[currentProblemId];
 }
 
-// Hàm tìm kiếm tổng quát áp dụng cho mọi bài toán
+/* ========================================================
+   THUẬT TOÁN TÌM KIẾM BFS VÀ DFS
+   ======================================================== */
 function runSearch(algo, startState, problem) {
   const initialNode = new SearchNode([...startState], null, 0, 'START');
-  const frontier = [initialNode]; // BFS: shift/push, DFS: pop/push
+  const frontier = [initialNode];
   const explored = new Set();
   const frontierSet = new Set([problem.stateToKey(startState)]);
 
   const steps = [];
-  let stepCounter = 0;
+  let stepCounter = 1; // Step bắt đầu tính từ 1 để dễ đếm
   let finalNode = null;
   const maxSteps = 1500;
 
-  while (frontier.length > 0 && stepCounter < maxSteps) {
+  while (frontier.length > 0 && steps.length < maxSteps) {
+    // BFS: dequeue từ đầu (FIFO) | DFS: pop từ cuối (LIFO)
     const currentNode = (algo === 'BFS') ? frontier.shift() : frontier.pop();
     const currKey = problem.stateToKey(currentNode.state);
     frontierSet.delete(currKey);
 
     const goalReached = problem.isGoal(currentNode.state);
 
+    // Snapshot các node đang chờ trong Frontier
     const frontierSnapshot = frontier.map(n => ({
       state: [...n.state],
       action: n.action,
@@ -167,9 +156,11 @@ function runSearch(algo, startState, problem) {
       step: stepCounter,
       node: currentNode,
       action: currentNode.action,
+      cost: currentNode.pathCost,
       isGoal: goalReached,
       frontierSnapshot: frontierSnapshot,
-      exploredCount: explored.size
+      exploredCount: explored.size,
+      parentState: currentNode.parent ? currentNode.parent.state : null
     });
 
     if (goalReached) {
@@ -179,7 +170,11 @@ function runSearch(algo, startState, problem) {
 
     explored.add(currKey);
 
+    // Sinh các node con theo thứ tự: UP, DOWN, LEFT, RIGHT
     const children = problem.expand(currentNode);
+
+    // Với DFS (LIFO Stack), để duyệt theo thứ tự UP, DOWN, LEFT, RIGHT:
+    // ta đưa vào ngăn xếp theo thứ tự ngược lại để UP nằm ở đỉnh ngăn xếp được pop trước!
     const orderedChildren = (algo === 'DFS') ? [...children].reverse() : children;
 
     for (const child of orderedChildren) {
@@ -194,24 +189,25 @@ function runSearch(algo, startState, problem) {
   }
 
   // Truy vết lời giải
-  let solutionPath = null;
+  let path = null;
   if (finalNode) {
-    solutionPath = [];
+    path = [];
     let curr = finalNode;
     while (curr !== null) {
-      solutionPath.push({
+      path.push({
         state: curr.state,
         action: curr.action,
-        cost: curr.pathCost
+        cost: curr.pathCost,
+        parentState: curr.parent ? curr.parent.state : null
       });
       curr = curr.parent;
     }
-    solutionPath.reverse();
+    path.reverse();
   }
 
   return {
     steps,
-    solutionPath,
+    solutionPath: path,
     finalNode,
     totalExplored: explored.size
   };
@@ -228,24 +224,23 @@ function applyStep(index) {
   const s = traceSteps[index];
   const problem = getCurrentProblem();
 
-  // 1. Vẽ Node
+  // 1. Vẽ bàn cờ Node
   const container = document.getElementById('visualContainer');
-  const parentState = s.node.parent ? s.node.parent.state : null;
-  problem.renderVisual(s.node.state, container, s.action, parentState);
+  problem.renderVisual(s.node.state, container, s.action, s.parentState);
 
   document.getElementById('stateTupleText').textContent = problem.formatState(s.node.state);
-  document.getElementById('nodeCostText').textContent = s.node.pathCost;
-  document.getElementById('nodeDepthText').textContent = s.node.pathCost;
+  document.getElementById('nodeCostText').textContent = s.cost;
+  document.getElementById('nodeDepthText').textContent = s.cost;
   document.getElementById('nodeActionText').textContent = s.action;
 
   // 2. Vẽ Frontier dạng List
   renderFrontierList(s.frontierSnapshot, currentAlgorithm, problem);
 
-  // 3. Vẽ Endpoint dạng List
-  renderEndpoint(window.latestSolutionPath, s.isGoal, s.step, problem);
+  // 3. Vẽ Endpoint
+  renderEndpoint(solutionPath, s.isGoal, s.step, problem);
 
-  // 4. Chỉ báo tiến độ
-  document.getElementById('stepProgressIndicator').textContent = `${index + 1} / ${traceSteps.length}`;
+  // 4. Chỉ báo tiến độ bước (Bắt đầu từ 1)
+  document.getElementById('stepProgressIndicator').textContent = `${s.step} / ${traceSteps.length}`;
 
   // 5. Highlight hàng trong bảng
   document.querySelectorAll('#traceTableBody tr').forEach(r => r.classList.remove('active-row'));
@@ -255,7 +250,7 @@ function applyStep(index) {
     activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
   }
 
-  // Cập nhật nút lùi/tiến
+  // Cập nhật trạng thái nút bấm
   document.getElementById('btnPrev').disabled = (index === 0);
   document.getElementById('btnNext').disabled = (index === traceSteps.length - 1);
 }
@@ -301,8 +296,8 @@ function renderFrontierList(frontierSnapshot, algo, problem) {
   });
 }
 
-// Hiển thị Endpoint dạng List
-function renderEndpoint(solutionPath, isGoalCurrent, currentStep, problem) {
+// Hiển thị Endpoint & Danh sách đường đi lời giải dạng List
+function renderEndpoint(solPath, isGoalCurrent, currentStep, problem) {
   const statusEl = document.getElementById('endpointStatus');
   const pathListEl = document.getElementById('solutionPathList');
   const pathCountBadge = document.getElementById('solutionCountBadge');
@@ -312,30 +307,31 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep, problem) {
     statusEl.innerHTML = `<span>✓ ĐÃ TÌM THẤY ĐÍCH!</span> <span>Step ${currentStep}</span>`;
   } else {
     statusEl.className = 'endpoint-status status-searching';
-    statusEl.innerHTML = `<span>⏳ Đang duyệt tìm kiếm...</span> <span>is_goal: False</span>`;
+    statusEl.innerHTML = `<span>⏳ Đang duyệt tìm kiếm...</span> <span>Step ${currentStep}</span>`;
   }
 
   pathListEl.innerHTML = '';
 
-  if (!solutionPath || solutionPath.length === 0) {
+  if (!solPath || solPath.length === 0) {
     pathCountBadge.textContent = '0 bước';
     pathListEl.innerHTML = `<div style="color: var(--text-light); text-align: center; padding: 2rem 0; font-size: 0.8rem;">Đang tìm đường đi...</div>`;
     return;
   }
 
-  pathCountBadge.textContent = `${solutionPath.length - 1} di chuyển`;
+  pathCountBadge.textContent = `${solPath.length} steps (${solPath.length - 1} di chuyển)`;
 
-  solutionPath.forEach((p, idx) => {
+  solPath.forEach((p, idx) => {
     const item = document.createElement('div');
     item.className = 'path-step-item';
-    const isGoalStep = (idx === solutionPath.length - 1);
+    const isGoalStep = (idx === solPath.length - 1);
 
     item.innerHTML = `
       <div>
-        <span class="path-step-num">Step ${idx}:</span>
+        <span class="path-step-num">Step ${idx + 1}:</span>
         <span style="font-family: monospace;">${problem.formatState(p.state)}</span>
       </div>
-      <div>
+      <div style="display: flex; gap: 0.35rem; align-items: center;">
+        <span style="font-size: 0.72rem; color: var(--text-muted);">Cost: <strong>${p.cost}</strong></span>
         <span class="list-action-tag" style="${isGoalStep ? 'background:#ecfdf5; color:#059669; font-weight:bold;' : ''}">
           ${p.action}
         </span>
@@ -343,8 +339,9 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep, problem) {
     `;
 
     item.onclick = () => {
+      pausePlayback();
       const container = document.getElementById('visualContainer');
-      problem.renderVisual(p.state, container, p.action, null);
+      problem.renderVisual(p.state, container, p.action, p.parentState);
       document.getElementById('stateTupleText').textContent = problem.formatState(p.state);
       document.getElementById('nodeCostText').textContent = p.cost;
       document.getElementById('nodeActionText').textContent = p.action;
@@ -354,7 +351,7 @@ function renderEndpoint(solutionPath, isGoalCurrent, currentStep, problem) {
   });
 }
 
-// Hiển thị bảng vết từng bước
+// Hiển thị bảng chi tiết từng Step (Search Trace Table)
 function renderTraceTable(steps, problem) {
   const tbody = document.getElementById('traceTableBody');
   tbody.innerHTML = '';
@@ -372,9 +369,10 @@ function renderTraceTable(steps, problem) {
       <td><strong>${s.step}</strong></td>
       <td style="color: var(--primary); font-weight: 600;">${problem.formatState(s.node.state)}</td>
       <td><span class="list-action-tag">${s.action}</span></td>
+      <td><strong>${s.cost}</strong></td>
       <td>${frontierBrief}</td>
       <td>${s.exploredCount} nodes</td>
-      <td>${s.isGoal ? '<span style="color: #059669; font-weight: 800;">✓ TRUE (GOAL)</span>' : '<span style="color: #94a3b8;">False</span>'}</td>
+      <td>${s.isGoal ? '<span style="color: #059669; font-weight: 800;">✓ ĐÍCH (GOAL)</span>' : '<span style="color: #94a3b8;">False</span>'}</td>
     `;
 
     tr.onclick = () => {
@@ -387,7 +385,7 @@ function renderTraceTable(steps, problem) {
 }
 
 /* ========================================================
-   SỰ KIỆN THAY ĐỔI COMBO BOX & ĐIỀU KHIỂN
+   SỰ KIỆN THAY ĐỔI & ĐIỀU KHIỂN
    ======================================================== */
 
 // Khởi chạy lại toàn bộ thuật toán
@@ -397,30 +395,23 @@ function initializeSearch() {
 
   const searchResult = runSearch(currentAlgorithm, currentState, problem);
   traceSteps = searchResult.steps;
-  window.latestSolutionPath = searchResult.solutionPath;
+  solutionPath = searchResult.solutionPath;
 
   renderTraceTable(traceSteps, problem);
   applyStep(0);
 }
 
-// 1. Khi đổi bài toán từ Combo Box
+// 1. Khi đổi bài toán
 function onProblemChange(problemId) {
   currentProblemId = problemId;
   const problem = getCurrentProblem();
-
-  // Cập nhật phụ đề ứng dụng
-  document.getElementById('appSubtitle').textContent = `${problem.name} — Thuật toán tìm kiếm BFS & DFS`;
-  
-  // Cập nhật danh sách Presets tương ứng trong Combo box
   populatePresets(problem);
-
   currentState = [...problem.defaultState];
   document.getElementById('customStateInput').value = problem.defaultState.join(', ');
-  
   initializeSearch();
 }
 
-// 2. Khi đổi thuật toán từ Combo Box (Yêu cầu chính)
+// 2. Khi đổi thuật toán (BFS / DFS)
 function onAlgorithmChange(algoName) {
   currentAlgorithm = algoName;
   const badge = document.getElementById('frontierTypeBadge');
@@ -428,7 +419,7 @@ function onAlgorithmChange(algoName) {
   initializeSearch();
 }
 
-// 3. Khi đổi trạng thái mẫu từ Combo Box
+// 3. Khi đổi đề bài mẫu
 function onPresetChange(presetId) {
   const problem = getCurrentProblem();
   const customBox = document.getElementById('customInputBox');
@@ -447,7 +438,7 @@ function onPresetChange(presetId) {
   }
 }
 
-// Điền các option presets vào combo box
+// Điền các option presets vào combo box (chỉ chừa Đề bài mặc định & Tự nhập trạng thái)
 function populatePresets(problem) {
   const select = document.getElementById('presetSelect');
   select.innerHTML = '';
@@ -465,27 +456,15 @@ function populatePresets(problem) {
   select.appendChild(customOpt);
 }
 
-// Nhập mảng tự do
+// Tự nhập mảng trạng thái
 function setCustomState() {
-  const problem = getCurrentProblem();
   const val = document.getElementById('customStateInput').value.trim();
-  
   const parts = val.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
   if (parts.length !== 9) {
     alert('Vui lòng nhập đúng 9 chữ số từ 0 đến 8 cách nhau bởi dấu phẩy!');
     return;
   }
   currentState = parts;
-  initializeSearch();
-}
-
-// Đổi đề / Xáo đề ngẫu nhiên
-function shuffleCurrentProblem() {
-  const problem = getCurrentProblem();
-  currentState = problem.shuffle();
-  document.getElementById('presetSelect').value = 'custom';
-  document.getElementById('customInputBox').style.display = 'flex';
-  document.getElementById('customStateInput').value = currentState.join(', ');
   initializeSearch();
 }
 
@@ -564,9 +543,9 @@ function closeModal(id) {
 
 function copyTableData() {
   const problem = getCurrentProblem();
-  let md = `| Step | Node State | Action | Explored | Goal |\n|---|---|---|---|---|\n`;
-  traceSteps.forEach(s => {
-    md += `| ${s.step} | ${problem.formatState(s.node.state)} | ${s.action} | ${s.exploredCount} | ${s.isGoal ? 'TRUE' : 'False'} |\n`;
+  let md = `| Step | State | Action | Path Cost | Explored | Goal |\n|---|---|---|---|---|---|\n`;
+  traceSteps.forEach((s) => {
+    md += `| ${s.step} | ${problem.formatState(s.node.state)} | ${s.action} | ${s.cost} | ${s.exploredCount} | ${s.isGoal ? 'TRUE' : 'False'} |\n`;
   });
   navigator.clipboard.writeText(md).then(() => {
     alert('Đã sao chép bảng Markdown vào bộ nhớ tạm!');
@@ -586,7 +565,7 @@ window.addEventListener('keydown', (e) => {
   }
 });
 
-// Khởi chạy
+// Khởi chạy khi load trang
 window.onload = function() {
   populatePresets(getCurrentProblem());
   initializeSearch();

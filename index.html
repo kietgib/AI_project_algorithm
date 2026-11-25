@@ -1,0 +1,1849 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Trần Gia Kiệt - 24110103 | Demo 8-Puzzle BFS & DFS</title>
+  <style>
+    :root {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-card: #1e293b;
+      --bg-card-hover: #334155;
+      --text-main: #f8fafc;
+      --text-muted: #94a3b8;
+      --accent-blue: #38bdf8;
+      --accent-emerald: #10b981;
+      --accent-amber: #f59e0b;
+      --accent-purple: #a855f7;
+      --accent-rose: #f43f5e;
+      --border-color: #334155;
+      --tile-bg: #334155;
+      --tile-text: #f8fafc;
+      --tile-empty: #0f172a;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', system-ui, -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
+    }
+
+    body {
+      background-color: var(--bg-primary);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    /* Header styling with user name prominently displayed */
+    header {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      border-bottom: 2px solid var(--border-color);
+      padding: 1.25rem 2rem;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.4);
+    }
+
+    .header-container {
+      max-width: 1500px;
+      margin: 0 auto;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .user-branding {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .avatar-badge {
+      width: 52px;
+      height: 52px;
+      background: linear-gradient(135deg, #38bdf8, #6366f1);
+      border-radius: 14px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.4rem;
+      color: white;
+      box-shadow: 0 4px 14px rgba(56, 189, 248, 0.35);
+    }
+
+    .header-titles h1 {
+      font-size: 1.5rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+      background: linear-gradient(to right, #38bdf8, #818cf8, #c084fc);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .header-titles h2 {
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #cbd5e1;
+      margin-top: 2px;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .tag-badge {
+      display: inline-block;
+      padding: 0.2rem 0.6rem;
+      border-radius: 6px;
+      font-size: 0.75rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    .tag-mssv {
+      background: rgba(56, 189, 248, 0.2);
+      color: var(--accent-blue);
+      border: 1px solid rgba(56, 189, 248, 0.4);
+    }
+
+    .tag-algo {
+      background: rgba(16, 185, 129, 0.2);
+      color: var(--accent-emerald);
+      border: 1px solid rgba(16, 185, 129, 0.4);
+    }
+
+    /* Main Container */
+    main {
+      max-width: 1500px;
+      margin: 1.5rem auto;
+      padding: 0 1.5rem;
+      width: 100%;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    /* Control Panel */
+    .control-panel {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1.25rem 1.5rem;
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+      align-items: center;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .control-label {
+      font-size: 0.82rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--text-muted);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* Algorithm Switcher Tabs */
+    .algo-switcher {
+      display: flex;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 4px;
+      gap: 4px;
+    }
+
+    .algo-btn {
+      flex: 1;
+      padding: 0.6rem 1rem;
+      border: none;
+      background: transparent;
+      color: var(--text-muted);
+      border-radius: 8px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+    }
+
+    .algo-btn.active {
+      background: linear-gradient(135deg, #2563eb, #38bdf8);
+      color: white;
+      box-shadow: 0 2px 10px rgba(37, 99, 235, 0.4);
+    }
+
+    .algo-btn:hover:not(.active) {
+      background: rgba(255, 255, 255, 0.05);
+      color: var(--text-main);
+    }
+
+    /* Selects and buttons */
+    select, input[type="text"] {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      color: var(--text-main);
+      padding: 0.65rem 0.9rem;
+      border-radius: 10px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      outline: none;
+      transition: border 0.2s;
+      width: 100%;
+    }
+
+    select:focus, input[type="text"]:focus {
+      border-color: var(--accent-blue);
+      box-shadow: 0 0 0 2px rgba(56, 189, 248, 0.2);
+    }
+
+    /* Playback Controls */
+    .playback-toolbar {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 16px;
+      padding: 1rem 1.5rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1.25rem;
+    }
+
+    .playback-buttons {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.5rem;
+      padding: 0.65rem 1.1rem;
+      border-radius: 10px;
+      font-weight: 700;
+      font-size: 0.9rem;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      outline: none;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white;
+      box-shadow: 0 2px 10px rgba(16, 185, 129, 0.3);
+    }
+
+    .btn-primary:hover {
+      background: linear-gradient(135deg, #059669, #047857);
+      transform: translateY(-1px);
+    }
+
+    .btn-danger {
+      background: linear-gradient(135deg, #f43f5e, #e11d48);
+      color: white;
+    }
+
+    .btn-secondary {
+      background: var(--bg-card);
+      color: var(--text-main);
+      border: 1px solid var(--border-color);
+    }
+
+    .btn-secondary:hover {
+      background: var(--bg-card-hover);
+      border-color: #64748b;
+      transform: translateY(-1px);
+    }
+
+    .btn:disabled {
+      opacity: 0.45;
+      cursor: not-allowed;
+      transform: none !important;
+    }
+
+    /* Speed Slider Section */
+    .speed-control-box {
+      display: flex;
+      align-items: center;
+      gap: 1rem;
+      background: var(--bg-card);
+      padding: 0.5rem 1rem;
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+    }
+
+    .speed-slider {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 140px;
+      height: 6px;
+      background: #334155;
+      border-radius: 4px;
+      outline: none;
+    }
+
+    .speed-slider::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      appearance: none;
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      background: var(--accent-blue);
+      cursor: pointer;
+      box-shadow: 0 0 10px rgba(56, 189, 248, 0.7);
+    }
+
+    .speed-val-display {
+      font-size: 0.85rem;
+      font-weight: 700;
+      color: var(--accent-blue);
+      min-width: 65px;
+    }
+
+    /* 3 Main Display Cards: Node, Frontier, Endpoint */
+    .visual-grid {
+      display: grid;
+      grid-template-columns: 1fr 1.25fr 1fr;
+      gap: 1.5rem;
+    }
+
+    @media (max-width: 1100px) {
+      .visual-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    .card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.25);
+    }
+
+    .card-header {
+      padding: 1rem 1.25rem;
+      background: rgba(15, 23, 42, 0.6);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .card-title {
+      font-size: 1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card-badge {
+      font-size: 0.75rem;
+      padding: 0.2rem 0.5rem;
+      border-radius: 6px;
+      font-weight: 700;
+    }
+
+    .card-body {
+      padding: 1.25rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 1rem;
+    }
+
+    /* Puzzle Board 3x3 */
+    .puzzle-board-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .puzzle-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 8px;
+      width: 260px;
+      height: 260px;
+      background: #0f172a;
+      padding: 10px;
+      border-radius: 16px;
+      border: 2px solid #334155;
+      box-shadow: inset 0 2px 8px rgba(0, 0, 0, 0.5);
+    }
+
+    .puzzle-tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.8rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, #334155, #1e293b);
+      color: #f8fafc;
+      border-radius: 12px;
+      border: 1px solid #475569;
+      box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3), inset 0 1px 1px rgba(255, 255, 255, 0.1);
+      transition: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+      user-select: none;
+    }
+
+    .puzzle-tile.empty {
+      background: rgba(15, 23, 42, 0.4);
+      border: 1px dashed #334155;
+      color: transparent;
+      box-shadow: none;
+    }
+
+    .puzzle-tile.moved {
+      border-color: var(--accent-amber);
+      color: #fef08a;
+      box-shadow: 0 0 14px rgba(245, 158, 11, 0.4);
+      transform: scale(1.02);
+    }
+
+    .puzzle-tile.goal-matched {
+      border-color: rgba(16, 185, 129, 0.7);
+    }
+
+    /* Mini Puzzle Board for Endpoint */
+    .mini-puzzle-board {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      gap: 4px;
+      width: 140px;
+      height: 140px;
+      background: #0f172a;
+      padding: 6px;
+      border-radius: 10px;
+      border: 1px solid #334155;
+    }
+
+    .mini-puzzle-tile {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.95rem;
+      font-weight: 700;
+      background: #1e293b;
+      color: #94a3b8;
+      border-radius: 6px;
+      border: 1px solid #334155;
+    }
+
+    .mini-puzzle-tile.empty {
+      background: transparent;
+      border: 1px dashed #334155;
+      color: transparent;
+    }
+
+    /* Node Details Info */
+    .node-meta-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 0.6rem;
+      width: 100%;
+    }
+
+    .meta-item {
+      background: #0f172a;
+      padding: 0.6rem 0.8rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      display: flex;
+      flex-direction: column;
+      gap: 0.2rem;
+    }
+
+    .meta-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      font-weight: 700;
+    }
+
+    .meta-value {
+      font-size: 0.95rem;
+      font-weight: 700;
+      color: var(--text-main);
+      word-break: break-all;
+    }
+
+    /* Frontier visualization */
+    .frontier-queue-container {
+      display: flex;
+      flex-direction: column;
+      height: 100%;
+      gap: 0.75rem;
+    }
+
+    .frontier-status-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      background: #0f172a;
+      padding: 0.6rem 1rem;
+      border-radius: 10px;
+      border: 1px solid var(--border-color);
+      font-size: 0.85rem;
+    }
+
+    .frontier-items-list {
+      flex: 1;
+      max-height: 290px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+      padding-right: 4px;
+    }
+
+    .frontier-item-card {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 10px;
+      padding: 0.6rem 0.8rem;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      transition: all 0.2s ease;
+      cursor: pointer;
+    }
+
+    .frontier-item-card:hover {
+      border-color: var(--accent-blue);
+      background: rgba(56, 189, 248, 0.05);
+    }
+
+    .frontier-item-card.next-out {
+      border-color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.1);
+      box-shadow: 0 0 10px rgba(16, 185, 129, 0.2);
+    }
+
+    .frontier-item-info {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .frontier-badge-idx {
+      font-size: 0.7rem;
+      padding: 0.15rem 0.4rem;
+      border-radius: 4px;
+      background: #334155;
+      color: #94a3b8;
+      font-weight: 700;
+    }
+
+    .frontier-state-text {
+      font-family: monospace;
+      font-size: 0.85rem;
+      color: #e2e8f0;
+      font-weight: 600;
+    }
+
+    /* Endpoint / Goal Status */
+    .endpoint-container {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 1rem;
+      height: 100%;
+    }
+
+    .goal-status-alert {
+      width: 100%;
+      padding: 0.85rem 1rem;
+      border-radius: 12px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+    }
+
+    .goal-searching {
+      background: rgba(56, 189, 248, 0.1);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      color: var(--accent-blue);
+    }
+
+    .goal-found {
+      background: rgba(16, 185, 129, 0.15);
+      border: 1px solid rgba(16, 185, 129, 0.5);
+      color: #34d399;
+      animation: pulse 1.5s infinite;
+    }
+
+    @keyframes pulse {
+      0%, 100% { opacity: 1; transform: scale(1); }
+      50% { opacity: 0.95; transform: scale(1.01); }
+    }
+
+    .solution-path-container {
+      width: 100%;
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 0.75rem;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 0.5rem;
+    }
+
+    .solution-path-list {
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 0.35rem;
+    }
+
+    .solution-step-badge {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.35rem 0.6rem;
+      background: #1e293b;
+      border-radius: 6px;
+      font-size: 0.8rem;
+    }
+
+    /* Trace Table Section */
+    .table-section {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      overflow: hidden;
+      box-shadow: 0 4px 16px rgba(0, 0, 0, 0.2);
+    }
+
+    .table-header-bar {
+      padding: 1rem 1.5rem;
+      background: rgba(15, 23, 42, 0.8);
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: space-between;
+      align-items: center;
+      gap: 1rem;
+    }
+
+    .table-title {
+      font-size: 1.1rem;
+      font-weight: 800;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .table-wrapper {
+      max-height: 380px;
+      overflow-y: auto;
+      overflow-x: auto;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+      font-size: 0.88rem;
+    }
+
+    thead th {
+      background: #0f172a;
+      color: var(--text-muted);
+      font-weight: 700;
+      padding: 0.75rem 1rem;
+      border-bottom: 1px solid var(--border-color);
+      position: sticky;
+      top: 0;
+      z-index: 10;
+      white-space: nowrap;
+    }
+
+    tbody td {
+      padding: 0.7rem 1rem;
+      border-bottom: 1px solid #1e293b;
+      font-family: monospace;
+      font-size: 0.84rem;
+      color: #cbd5e1;
+    }
+
+    tbody tr {
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+
+    tbody tr:hover {
+      background: rgba(56, 189, 248, 0.08);
+    }
+
+    tbody tr.active-step {
+      background: rgba(245, 158, 11, 0.18) !important;
+      border-left: 4px solid var(--accent-amber);
+    }
+
+    tbody tr.goal-step {
+      background: rgba(16, 185, 129, 0.2) !important;
+      border-left: 4px solid var(--accent-emerald);
+    }
+
+    /* Modal for Code & Comparison */
+    .modal-overlay {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0, 0, 0, 0.8);
+      backdrop-filter: blur(4px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 1rem;
+    }
+
+    .modal-container {
+      background: var(--bg-card);
+      border: 1px solid var(--border-color);
+      border-radius: 18px;
+      max-width: 900px;
+      width: 100%;
+      max-height: 85vh;
+      display: flex;
+      flex-direction: column;
+      box-shadow: 0 10px 40px rgba(0, 0, 0, 0.6);
+      overflow: hidden;
+    }
+
+    .modal-header {
+      padding: 1rem 1.5rem;
+      background: #0f172a;
+      border-bottom: 1px solid var(--border-color);
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .modal-body {
+      padding: 1.5rem;
+      overflow-y: auto;
+      font-size: 0.9rem;
+      line-height: 1.6;
+    }
+
+    pre code {
+      display: block;
+      background: #0f172a;
+      padding: 1rem;
+      border-radius: 10px;
+      font-family: Consolas, 'Courier New', monospace;
+      color: #38bdf8;
+      font-size: 0.85rem;
+      overflow-x: auto;
+      border: 1px solid #334155;
+    }
+
+    /* Scrollbar styling */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0f172a;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #475569;
+    }
+
+    .stats-badge-container {
+      display: flex;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+
+    .stat-pill {
+      background: #0f172a;
+      border: 1px solid var(--border-color);
+      padding: 0.35rem 0.75rem;
+      border-radius: 20px;
+      font-size: 0.8rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Top Header with user name prominently displayed -->
+  <header>
+    <div class="header-container">
+      <div class="user-branding">
+        <div class="avatar-badge">GK</div>
+        <div class="header-titles">
+          <h1>TRẦN GIA KIỆT <span class="tag-badge tag-mssv">MSSV: 24110103</span></h1>
+          <h2>BÀI TOÁN 8-PUZZLE — MÔ PHỎNG THUẬT TOÁN TÌM KIẾM BFS & DFS</h2>
+        </div>
+      </div>
+
+      <div class="stats-badge-container">
+        <button class="btn btn-secondary" onclick="openModal('compareModal')">
+          📊 So sánh BFS vs DFS
+        </button>
+        <button class="btn btn-secondary" onclick="openModal('codeModal')">
+          💻 Xem 9 Hàm Python (Colab)
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Content Area -->
+  <main>
+
+    <!-- Control & Setting Toolbar -->
+    <section class="control-panel">
+      <!-- 1. Algorithm Selection -->
+      <div class="control-group">
+        <span class="control-label">🔍 Thuật toán tìm kiếm</span>
+        <div class="algo-switcher">
+          <button class="algo-btn active" id="btnAlgoBFS" onclick="selectAlgorithm('BFS')">
+            <span>BFS (Hàng đợi)</span>
+          </button>
+          <button class="algo-btn" id="btnAlgoDFS" onclick="selectAlgorithm('DFS')">
+            <span>DFS (Ngăn xếp)</span>
+          </button>
+        </div>
+      </div>
+
+      <!-- 2. Problem Presets -->
+      <div class="control-group">
+        <span class="control-label">🧩 Trạng thái ban đầu (Presets)</span>
+        <select id="presetSelect" onchange="applyPreset(this.value)">
+          <option value="notebook">★ Đề bài Notebook (2 bước giải)</option>
+          <option value="easy1">Rất dễ (1 bước giải)</option>
+          <option value="medium4">Trung bình (4 bước giải)</option>
+          <option value="medium6">Nâng cao (6 bước giải)</option>
+          <option value="custom">Tùy chỉnh (Nhập mảng)</option>
+        </select>
+      </div>
+
+      <!-- 3. Custom Input or Solvability -->
+      <div class="control-group" id="customInputGroup" style="display: none;">
+        <span class="control-label">✏ Nhập trạng thái 9 số (0-8)</span>
+        <div style="display: flex; gap: 0.5rem;">
+          <input type="text" id="customStateInput" value="1, 2, 3, 4, 0, 6, 7, 5, 8" placeholder="1,2,3,4,0,6,7,5,8">
+          <button class="btn btn-secondary" onclick="setCustomState()">Áp dụng</button>
+        </div>
+      </div>
+
+      <!-- 4. Quick Action Shuffle -->
+      <div class="control-group">
+        <span class="control-label">🎲 Thao tác nhanh</span>
+        <div style="display: flex; gap: 0.5rem;">
+          <button class="btn btn-secondary" style="flex: 1;" onclick="shuffleInitialState(3)">Tráo 3 bước</button>
+          <button class="btn btn-secondary" style="flex: 1;" onclick="shuffleInitialState(6)">Tráo 6 bước</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- Playback and Speed Control Bar -->
+    <section class="playback-toolbar">
+      <div class="playback-buttons">
+        <button class="btn btn-primary" id="btnPlayPause" onclick="togglePlayPause()">
+          <span id="playIcon">▶</span> <span id="playText">Chạy tự động</span>
+        </button>
+        <button class="btn btn-secondary" id="btnPrev" onclick="stepPrev()" title="Bước trước (Phím Mũi tên Trái)">
+          ⏮ Bước trước
+        </button>
+        <button class="btn btn-secondary" id="btnNext" onclick="stepNext()" title="Bước tiếp theo (Phím Mũi tên Phải / Space)">
+          ⏭ Bước tiếp
+        </button>
+        <button class="btn btn-danger" onclick="resetPlayback()" title="Quay về bước đầu tiên">
+          🔄 Bắt đầu lại
+        </button>
+        <button class="btn btn-secondary" onclick="jumpToEnd()" title="Xem ngay bước cuối">
+          ⏩ Về đích
+        </button>
+      </div>
+
+      <!-- Speed Slider (Requirement: có nút điều chỉnh tốc độ run) -->
+      <div class="speed-control-box">
+        <span class="control-label" style="margin: 0; color: #cbd5e1;">⚡ Tốc độ chạy:</span>
+        <input type="range" id="speedSlider" class="speed-slider" min="50" max="2000" step="50" value="400" oninput="updateSpeed(this.value)">
+        <span class="speed-val-display" id="speedValText">400 ms</span>
+        <div style="display: flex; gap: 4px;">
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="setPresetSpeed(1000)">Chậm</button>
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="setPresetSpeed(400)">Chuẩn</button>
+          <button class="btn btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;" onclick="setPresetSpeed(100)">Nhanh</button>
+        </div>
+      </div>
+
+      <!-- Current Step Progress Indicator -->
+      <div class="stat-pill" style="border-color: var(--accent-amber); color: var(--accent-amber);">
+        <span>Bước:</span>
+        <strong id="stepProgressText">0 / 0</strong>
+      </div>
+    </section>
+
+    <!-- 3 Core Visual Cards: Node, Frontier, Endpoint -->
+    <section class="visual-grid">
+
+      <!-- CARD 1: NODE (Trạng thái hiện tại đang xét) -->
+      <div class="card" id="cardNode">
+        <div class="card-header">
+          <div class="card-title">
+            <span style="color: var(--accent-amber);">●</span> NODE (Trạng thái đang xét)
+          </div>
+          <span class="card-badge" style="background: rgba(245, 158, 11, 0.2); color: var(--accent-amber);" id="nodeActionBadge">
+            KHỞI TẠO
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="puzzle-board-container">
+            <div class="puzzle-board" id="currentPuzzleBoard">
+              <!-- 9 Tiles generated dynamically -->
+            </div>
+          </div>
+
+          <div class="node-meta-grid">
+            <div class="meta-item">
+              <span class="meta-label">Trạng thái (Tuple):</span>
+              <span class="meta-value" id="nodeStateTuple" style="font-size: 0.8rem; font-family: monospace;">-</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Chi phí (Path Cost):</span>
+              <span class="meta-value" id="nodePathCost">0</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Hành động từ cha:</span>
+              <span class="meta-value" id="nodeAction">START</span>
+            </div>
+            <div class="meta-item">
+              <span class="meta-label">Độ sâu (Depth):</span>
+              <span class="meta-value" id="nodeDepth">0</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 2: FRONTIER (Tập biên / Hàng đợi / Ngăn xếp) -->
+      <div class="card" id="cardFrontier">
+        <div class="card-header">
+          <div class="card-title">
+            <span style="color: var(--accent-blue);">●</span> FRONTIER (Tập biên)
+          </div>
+          <span class="card-badge" style="background: rgba(56, 189, 248, 0.2); color: var(--accent-blue);" id="frontierTypeBadge">
+            HÀNG ĐỢI FIFO
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="frontier-queue-container">
+            <div class="frontier-status-bar">
+              <span>Số node chờ trong Frontier: <strong id="frontierCount" style="color: var(--accent-blue);">0</strong></span>
+              <span style="font-size: 0.75rem; color: var(--text-muted);" id="frontierOrderHint">Lấy từ đầu (popleft)</span>
+            </div>
+
+            <!-- List of items in Frontier -->
+            <div class="frontier-items-list" id="frontierList">
+              <!-- Dynamically populated -->
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CARD 3: ENDPOINT (Đích & Kết quả tìm kiếm) -->
+      <div class="card" id="cardEndpoint">
+        <div class="card-header">
+          <div class="card-title">
+            <span style="color: var(--accent-emerald);">●</span> ENDPOINT (Đích & Kết quả)
+          </div>
+          <span class="card-badge" style="background: rgba(16, 185, 129, 0.2); color: var(--accent-emerald);">
+            GOAL STATE
+          </span>
+        </div>
+        <div class="card-body">
+          <div class="endpoint-container">
+            <!-- Goal Target Preview -->
+            <div style="display: flex; align-items: center; gap: 1rem; width: 100%; justify-content: center;">
+              <div class="mini-puzzle-board" id="goalPuzzleBoard">
+                <!-- Goal tiles -->
+              </div>
+              <div style="display: flex; flex-direction: column; gap: 0.3rem;">
+                <span class="meta-label">Mục tiêu (Goal State):</span>
+                <span style="font-family: monospace; font-size: 0.8rem; color: #94a3b8;">
+                  (1, 2, 3)<br>
+                  (4, 5, 6)<br>
+                  (7, 8, 0)
+                </span>
+              </div>
+            </div>
+
+            <!-- Goal status notification -->
+            <div class="goal-status-alert goal-searching" id="goalAlertBox">
+              <span id="goalAlertIcon">⏳</span>
+              <span id="goalAlertText">Đang tìm kiếm đường đi...</span>
+            </div>
+
+            <!-- Solution Path List -->
+            <div class="solution-path-container">
+              <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 0.4rem;">
+                <span style="font-size: 0.82rem; font-weight: 700; color: #cbd5e1;">LỜI GIẢI (SOLUTION PATH):</span>
+                <span style="font-size: 0.78rem; color: var(--accent-emerald); font-weight: 700;" id="solutionLengthText">0 bước</span>
+              </div>
+              <div class="solution-path-list" id="solutionPathList">
+                <div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 1rem;">
+                  Đang chạy thuật toán...
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </div>
+
+    </section>
+
+    <!-- Table of Steps (Step-by-Step Search Trace) -->
+    <section class="table-section">
+      <div class="table-header-bar">
+        <div class="table-title">
+          <span>📋</span> BẢNG CHI TIẾT TỪNG STEP (SEARCH TRACE TABLE)
+          <span style="font-size: 0.8rem; font-weight: 600; color: var(--text-muted); margin-left: 0.5rem;">
+            (Nhấp chuột vào hàng bất kỳ để xem lại trạng thái tại bước đó)
+          </span>
+        </div>
+        <div style="display: flex; gap: 0.5rem; align-items: center;">
+          <button class="btn btn-secondary" style="font-size: 0.8rem; padding: 0.4rem 0.8rem;" onclick="copyTableData()">
+            📋 Sao chép bảng (Markdown)
+          </button>
+        </div>
+      </div>
+
+      <div class="table-wrapper">
+        <table id="traceTable">
+          <thead>
+            <tr>
+              <th style="width: 70px;">Step</th>
+              <th>Node đang xét (State)</th>
+              <th>Hành động</th>
+              <th>Frontier (Tập biên)</th>
+              <th>Explored (Đã duyệt)</th>
+              <th style="width: 140px;">Kiểm tra Đích</th>
+            </tr>
+          </thead>
+          <tbody id="traceTableBody">
+            <!-- Table rows generated dynamically -->
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- MODAL 1: Comparison between BFS and DFS -->
+  <div class="modal-overlay" id="compareModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--accent-blue);">📊 So sánh thuật toán BFS & DFS trên 8-Puzzle</h3>
+        <button class="btn btn-secondary" onclick="closeModal('compareModal')" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1.5rem;">
+          <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+            <h4 style="color: var(--accent-blue); margin-bottom: 0.5rem;">Breadth-First Search (BFS)</h4>
+            <ul style="list-style-type: square; margin-left: 1.2rem; color: #cbd5e1; font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <li><strong>Cấu trúc:</strong> Hàng đợi FIFO (First In First Out).</li>
+              <li><strong>Tính tối ưu:</strong> <span style="color: var(--accent-emerald); font-weight: 700;">Đảm bảo tìm ra đường đi ngắn nhất (ít bước nhất)</span> vì duyệt theo từng tầng độ sâu.</li>
+              <li><strong>Độ phức tạp bộ nhớ:</strong> Rất lớn \(O(b^d)\), Frontier lưu trữ toàn bộ các node ở tầng biên.</li>
+              <li><strong>Phù hợp:</strong> Khi cần lời giải tối ưu và độ sâu nghiệm không quá lớn.</li>
+            </ul>
+          </div>
+
+          <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+            <h4 style="color: var(--accent-purple); margin-bottom: 0.5rem;">Depth-First Search (DFS)</h4>
+            <ul style="list-style-type: square; margin-left: 1.2rem; color: #cbd5e1; font-size: 0.88rem; display: flex; flex-direction: column; gap: 0.4rem;">
+              <li><strong>Cấu trúc:</strong> Ngăn xếp LIFO (Last In First Out).</li>
+              <li><strong>Tính tối ưu:</strong> <span style="color: var(--accent-rose); font-weight: 700;">Không đảm bảo tối ưu</span>, có thể tìm thấy đường đi rất dài và vòng vèo.</li>
+              <li><strong>Độ phức tạp bộ nhớ:</strong> Tiết kiệm hơn BFS trên cây tìm kiếm \(O(b \cdot m)\).</li>
+              <li><strong>Lưu ý:</strong> Trên đồ thị 8-Puzzle cần lưu `explored` để tránh lặp vô tận (infinite loop).</li>
+            </ul>
+          </div>
+        </div>
+
+        <div style="background: #0f172a; padding: 1rem; border-radius: 12px; border: 1px solid #334155;">
+          <h4 style="color: var(--accent-amber); margin-bottom: 0.5rem;">Kết quả chạy thực tế trên trạng thái hiện tại:</h4>
+          <table style="width: 100%; border: 1px solid #334155; margin-top: 0.5rem;">
+            <thead>
+              <tr>
+                <th>Tiêu chí</th>
+                <th>BFS (Breadth-First)</th>
+                <th>DFS (Depth-First)</th>
+              </tr>
+            </thead>
+            <tbody id="comparisonTableBody">
+              <!-- Dynamically populated -->
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL 2: 9 Python Functions from Notebook -->
+  <div class="modal-overlay" id="codeModal">
+    <div class="modal-container">
+      <div class="modal-header">
+        <h3 style="font-size: 1.2rem; font-weight: 800; color: var(--accent-emerald);">💻 9 Hàm Chuẩn Trong Notebook (Trần Gia Kiệt - 24110103)</h3>
+        <button class="btn btn-secondary" onclick="closeModal('codeModal')" style="padding: 0.2rem 0.6rem;">✕</button>
+      </div>
+      <div class="modal-body">
+        <pre><code># -*- coding: utf-8 -*-
+"""
+Trần Gia Kiệt - 24110103
+Bài tập trên lớp thực hành viết 9 hàm trên BFS & DFS
+"""
+
+from collections import deque
+
+# 1. Lớp Node
+class Node:
+    def __init__(self, state, parent=None, path_cost=0, action=None):
+        self.state = state
+        self.parent = parent
+        self.path_cost = path_cost
+        self.action = action
+
+# 2. Hàm kiểm tra đích (is_goal)
+def is_goal(node, goal_state):
+    return node.state == goal_state
+
+# 3. Hàm khởi tạo hàng đợi (BFS) / ngăn xếp (DFS)
+def create_queue():
+    return deque()
+
+# 4. Hàm thêm phần tử (enqueue / push)
+def enqueue(frontier, node):
+    frontier.append(node)
+
+# 5. Hàm lấy phần tử (dequeue - BFS / pop - DFS)
+def dequeue(frontier):
+    return frontier.popleft()  # BFS dùng popleft; DFS dùng pop()
+
+# 6. Hàm kiểm tra hàng đợi rỗng
+def is_empty(frontier):
+    return len(frontier) == 0
+
+# 7. Hàm sinh nút con (expand)
+def expand(node):
+    children = []
+    state = node.state
+    zero_index = state.index(0)
+    row = zero_index // 3
+    col = zero_index % 3
+
+    actions = [
+        (-1, 0, "UP"),
+        (1, 0, "DOWN"),
+        (0, -1, "LEFT"),
+        (0, 1, "RIGHT")
+    ]
+
+    for dr, dc, act_name in actions:
+        new_row = row + dr
+        new_col = col + dc
+        if 0 <= new_row < 3 and 0 <= new_col < 3:
+            new_index = new_row * 3 + new_col
+            new_state = list(state)
+            new_state[zero_index], new_state[new_index] = new_state[new_index], new_state[zero_index]
+            new_state = tuple(new_state)
+
+            child = Node(
+                state=new_state,
+                parent=node,
+                path_cost=node.path_cost + 1,
+                action=act_name
+            )
+            children.append(child)
+    return children
+
+# 8. Hàm truy vết lời giải (trace_solution)
+def trace_solution(node):
+    path = []
+    while node is not None:
+        path.append(node.state)
+        node = node.parent
+    path.reverse()
+    return path
+
+# 9. Lớp định nghĩa bài toán (Problem)
+class Problem:
+    def __init__(self, initial_state, goal_state):
+        self.initial_state = initial_state
+        self.goal_state = goal_state
+
+    def is_goal(self, node):
+        return is_goal(node, self.goal_state)
+
+    def expand(self, node):
+        return expand(node)
+</code></pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- JavaScript Implementation -->
+  <script>
+    /* ========================================================
+       DATA STRUCTURES & SEARCH ALGORITHMS (BFS & DFS)
+       Author: Trần Gia Kiệt - 24110103
+       ======================================================== */
+
+    // Goal state standard for 8-Puzzle
+    const GOAL_STATE = [1, 2, 3, 4, 5, 6, 7, 8, 0];
+
+    // Presets
+    const PRESETS = {
+      notebook: [1, 2, 3, 4, 0, 6, 7, 5, 8], // 2 steps (đề trong colab)
+      easy1:    [1, 2, 3, 4, 5, 6, 7, 0, 8], // 1 step
+      medium4:  [1, 2, 3, 0, 4, 6, 7, 5, 8], // 4 steps
+      medium6:  [0, 1, 3, 4, 2, 6, 7, 5, 8], // 6 steps
+      custom:   [1, 2, 3, 4, 0, 6, 7, 5, 8]
+    };
+
+    // Application State
+    let currentAlgorithm = 'BFS';
+    let initialState = [...PRESETS.notebook];
+    let traceSteps = [];
+    let currentStepIndex = 0;
+    let isPlaying = false;
+    let playTimer = null;
+    let stepDelay = 400; // ms
+
+    // Node class
+    class PuzzleNode {
+      constructor(state, parent = null, pathCost = 0, action = 'START') {
+        this.state = state; // Array of 9 numbers
+        this.parent = parent;
+        this.pathCost = pathCost;
+        this.action = action;
+      }
+    }
+
+    // Helper: State to string key
+    function stateToKey(state) {
+      return state.join(',');
+    }
+
+    // Helper: State to display string
+    function formatState(state) {
+      return `(${state.join(', ')})`;
+    }
+
+    // Check if goal
+    function isGoal(state) {
+      for (let i = 0; i < 9; i++) {
+        if (state[i] !== GOAL_STATE[i]) return false;
+      }
+      return true;
+    }
+
+    // Expand node (UP, DOWN, LEFT, RIGHT)
+    function expandNode(node) {
+      const children = [];
+      const state = node.state;
+      const zeroIdx = state.indexOf(0);
+      const row = Math.floor(zeroIdx / 3);
+      const col = zeroIdx % 3;
+
+      const moves = [
+        { dr: -1, dc: 0, name: 'UP' },
+        { dr: 1, dc: 0, name: 'DOWN' },
+        { dr: 0, dc: -1, name: 'LEFT' },
+        { dr: 0, dc: 1, name: 'RIGHT' }
+      ];
+
+      for (const m of moves) {
+        const nr = row + m.dr;
+        const nc = col + m.dc;
+        if (nr >= 0 && nr < 3 && nc >= 0 && nc < 3) {
+          const newIdx = nr * 3 + nc;
+          const nextState = [...state];
+          nextState[zeroIdx] = nextState[newIdx];
+          nextState[newIdx] = 0;
+
+          children.push(new PuzzleNode(
+            nextState,
+            node,
+            node.pathCost + 1,
+            m.name
+          ));
+        }
+      }
+      return children;
+    }
+
+    // Trace solution back to start
+    function traceSolution(node) {
+      const path = [];
+      let curr = node;
+      while (curr !== null) {
+        path.push({
+          state: curr.state,
+          action: curr.action,
+          cost: curr.pathCost
+        });
+        curr = curr.parent;
+      }
+      path.reverse();
+      return path;
+    }
+
+    // Run Full Search and record step-by-step trace
+    function runSearch(algo, startState) {
+      const initialNode = new PuzzleNode([...startState], null, 0, 'START');
+      const frontier = [initialNode]; // FIFO (push/shift) or LIFO (push/pop)
+      const explored = new Set();
+      const frontierSet = new Set([stateToKey(startState)]);
+
+      const steps = [];
+      let stepCounter = 0;
+      let finalNode = null;
+      const maxSteps = 1500; // safety ceiling
+
+      while (frontier.length > 0 && stepCounter < maxSteps) {
+        // Dequeue (BFS: shift) or Pop (DFS: pop)
+        const currentNode = (algo === 'BFS') ? frontier.shift() : frontier.pop();
+        const currKey = stateToKey(currentNode.state);
+        frontierSet.delete(currKey);
+
+        const goalReached = isGoal(currentNode.state);
+
+        // Snapshot of frontier states
+        const frontierSnapshot = frontier.map(n => ({
+          state: [...n.state],
+          action: n.action,
+          cost: n.pathCost
+        }));
+
+        // Snapshot of explored
+        const exploredSnapshot = Array.from(explored).map(k => k.split(',').map(Number));
+
+        // Record trace for this step
+        steps.push({
+          step: stepCounter,
+          node: currentNode,
+          action: currentNode.action,
+          isGoal: goalReached,
+          frontierSnapshot: frontierSnapshot,
+          exploredSnapshot: exploredSnapshot
+        });
+
+        if (goalReached) {
+          finalNode = currentNode;
+          break;
+        }
+
+        explored.add(currKey);
+
+        // Expand
+        const children = expandNode(currentNode);
+
+        // In DFS, reversing children expansion maintains intuitive UP/DOWN/LEFT/RIGHT traversal
+        const orderedChildren = (algo === 'DFS') ? [...children].reverse() : children;
+
+        for (const child of orderedChildren) {
+          const childKey = stateToKey(child.state);
+          if (!explored.has(childKey) && !frontierSet.has(childKey)) {
+            frontier.push(child);
+            frontierSet.add(childKey);
+          }
+        }
+
+        stepCounter++;
+      }
+
+      const solutionPath = finalNode ? traceSolution(finalNode) : null;
+      return {
+        steps,
+        solutionPath,
+        finalNode,
+        totalExplored: explored.size
+      };
+    }
+
+    /* ========================================================
+       UI RENDERING & CONTROLLER
+       ======================================================== */
+
+    // Render Goal Board
+    function renderGoalBoard() {
+      const container = document.getElementById('goalPuzzleBoard');
+      container.innerHTML = '';
+      GOAL_STATE.forEach(val => {
+        const tile = document.createElement('div');
+        tile.className = `mini-puzzle-tile ${val === 0 ? 'empty' : ''}`;
+        tile.textContent = val !== 0 ? val : '';
+        container.appendChild(tile);
+      });
+    }
+
+    // Render Main Puzzle Board
+    function renderCurrentBoard(state, action, parentState) {
+      const container = document.getElementById('currentPuzzleBoard');
+      container.innerHTML = '';
+
+      state.forEach((val, idx) => {
+        const tile = document.createElement('div');
+        tile.className = `puzzle-tile ${val === 0 ? 'empty' : ''}`;
+
+        // Highlight if this tile was the one that just moved
+        if (parentState && val !== 0) {
+          const prevZeroIdx = parentState.indexOf(0);
+          if (idx === prevZeroIdx) {
+            tile.classList.add('moved');
+          }
+        }
+
+        // Green outline if tile matches goal position
+        if (val !== 0 && val === GOAL_STATE[idx]) {
+          tile.classList.add('goal-matched');
+        }
+
+        tile.textContent = val !== 0 ? val : '';
+        container.appendChild(tile);
+      });
+    }
+
+    // Render Frontier List
+    function renderFrontierList(frontierSnapshot, algo) {
+      const container = document.getElementById('frontierList');
+      const countEl = document.getElementById('frontierCount');
+      const orderHint = document.getElementById('frontierOrderHint');
+      const badge = document.getElementById('frontierTypeBadge');
+
+      countEl.textContent = frontierSnapshot.length;
+      badge.textContent = algo === 'BFS' ? 'HÀNG ĐỢI FIFO (QUEUE)' : 'NGÂN XẾP LIFO (STACK)';
+      orderHint.textContent = algo === 'BFS' ? 'Lấy từ đầu (popleft)' : 'Lấy từ đỉnh (pop)';
+
+      container.innerHTML = '';
+
+      if (frontierSnapshot.length === 0) {
+        container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 1.5rem; font-size: 0.85rem;">Frontier rỗng (0 phần tử)</div>`;
+        return;
+      }
+
+      frontierSnapshot.forEach((item, idx) => {
+        const card = document.createElement('div');
+        // Mark first item for BFS or last item for DFS as next out
+        const isNextOut = (algo === 'BFS' && idx === 0) || (algo === 'DFS' && idx === frontierSnapshot.length - 1);
+        card.className = `frontier-item-card ${isNextOut ? 'next-out' : ''}`;
+
+        card.innerHTML = `
+          <div class="frontier-item-info">
+            <span class="frontier-badge-idx">#${idx + 1}</span>
+            <span class="frontier-state-text">${formatState(item.state)}</span>
+          </div>
+          <div style="display: flex; align-items: center; gap: 0.4rem;">
+            <span style="font-size: 0.72rem; color: #94a3b8;">${item.action || 'START'} | g=${item.cost}</span>
+            ${isNextOut ? '<span style="font-size: 0.68rem; background: #065f46; color: #a7f3d0; padding: 2px 6px; border-radius: 4px; font-weight: bold;">Kế tiếp</span>' : ''}
+          </div>
+        `;
+
+        card.onclick = () => {
+          renderCurrentBoard(item.state, item.action, null);
+          document.getElementById('nodeStateTuple').textContent = formatState(item.state);
+          document.getElementById('nodePathCost').textContent = item.cost;
+          document.getElementById('nodeAction').textContent = item.action;
+          document.getElementById('nodeActionBadge').textContent = item.action;
+        };
+
+        container.appendChild(card);
+      });
+    }
+
+    // Render Solution Path list
+    function renderSolutionPath(solutionPath) {
+      const container = document.getElementById('solutionPathList');
+      const lengthText = document.getElementById('solutionLengthText');
+      container.innerHTML = '';
+
+      if (!solutionPath || solutionPath.length === 0) {
+        lengthText.textContent = '0 bước';
+        container.innerHTML = `<div style="color: var(--text-muted); font-size: 0.8rem; text-align: center; padding: 0.8rem;">Chưa tìm thấy hoặc không có nghiệm</div>`;
+        return;
+      }
+
+      lengthText.textContent = `${solutionPath.length - 1} di chuyển (${solutionPath.length} trạng thái)`;
+
+      solutionPath.forEach((p, idx) => {
+        const item = document.createElement('div');
+        item.className = 'solution-step-badge';
+        const isLast = idx === solutionPath.length - 1;
+
+        item.innerHTML = `
+          <span>
+            <strong style="color: ${isLast ? 'var(--accent-emerald)' : 'var(--accent-blue)'};">
+              Bước ${idx}:
+            </strong>
+            <span style="font-family: monospace;">${formatState(p.state)}</span>
+          </span>
+          <span style="font-weight: 700; color: #cbd5e1;">${p.action}</span>
+        `;
+        container.appendChild(item);
+      });
+    }
+
+    // Render Full Trace Table
+    function renderTraceTable(steps) {
+      const tbody = document.getElementById('traceTableBody');
+      tbody.innerHTML = '';
+
+      steps.forEach((s, idx) => {
+        const row = document.createElement('tr');
+        row.id = `trace-row-${idx}`;
+        if (s.isGoal) row.classList.add('goal-step');
+
+        const frontierSummary = s.frontierSnapshot.length > 0
+          ? `[${s.frontierSnapshot.length} nodes: ${s.frontierSnapshot.slice(0, 2).map(f => `(${f.state.slice(0,3).join('')}...)`).join(', ')}${s.frontierSnapshot.length > 2 ? '...' : ''}]`
+          : '[]';
+
+        const exploredSummary = s.exploredSnapshot.length > 0
+          ? `[${s.exploredSnapshot.length} nodes]`
+          : '[]';
+
+        row.innerHTML = `
+          <td><strong>${s.step}</strong></td>
+          <td style="color: #38bdf8;">${formatState(s.node.state)}</td>
+          <td><span class="tag-badge" style="background:#334155; color:#cbd5e1;">${s.action}</span></td>
+          <td title="${s.frontierSnapshot.map(f => formatState(f.state)).join(', ')}">${frontierSummary}</td>
+          <td>${exploredSummary}</td>
+          <td>
+            ${s.isGoal 
+              ? '<span style="color: #34d399; font-weight: 800;">✓ ĐÍCH (FOUND)</span>' 
+              : '<span style="color: #94a3b8;">False</span>'}
+          </td>
+        `;
+
+        row.onclick = () => {
+          pausePlayback();
+          applyStep(idx);
+        };
+
+        tbody.appendChild(row);
+      });
+    }
+
+    // Apply a specific step index to the UI
+    function applyStep(index) {
+      if (index < 0 || index >= traceSteps.length) return;
+      currentStepIndex = index;
+      const stepData = traceSteps[index];
+
+      // Update Board
+      const parentState = stepData.node.parent ? stepData.node.parent.state : null;
+      renderCurrentBoard(stepData.node.state, stepData.action, parentState);
+
+      // Update Node Metadata
+      document.getElementById('nodeStateTuple').textContent = formatState(stepData.node.state);
+      document.getElementById('nodePathCost').textContent = stepData.node.pathCost;
+      document.getElementById('nodeDepth').textContent = stepData.node.pathCost;
+      document.getElementById('nodeAction').textContent = stepData.action;
+      document.getElementById('nodeActionBadge').textContent = stepData.action;
+
+      // Update Frontier
+      renderFrontierList(stepData.frontierSnapshot, currentAlgorithm);
+
+      // Update Goal Status Alert
+      const alertBox = document.getElementById('goalAlertBox');
+      const alertIcon = document.getElementById('goalAlertIcon');
+      const alertText = document.getElementById('goalAlertText');
+
+      if (stepData.isGoal) {
+        alertBox.className = 'goal-status-alert goal-found';
+        alertIcon.textContent = '🎉';
+        alertText.innerHTML = `<strong>ĐÃ TÌM THẤY ĐÍCH!</strong> (Tại Step ${stepData.step})`;
+      } else {
+        alertBox.className = 'goal-status-alert goal-searching';
+        alertIcon.textContent = '⏳';
+        alertText.textContent = `Đang duyệt Step ${stepData.step}... (is_goal: False)`;
+      }
+
+      // Update Progress text
+      document.getElementById('stepProgressText').textContent = `${index + 1} / ${traceSteps.length}`;
+
+      // Update Table row highlight
+      document.querySelectorAll('#traceTableBody tr').forEach(tr => tr.classList.remove('active-step'));
+      const activeRow = document.getElementById(`trace-row-${index}`);
+      if (activeRow) {
+        activeRow.classList.add('active-step');
+        activeRow.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }
+
+      // Buttons enable/disable
+      document.getElementById('btnPrev').disabled = (index === 0);
+      document.getElementById('btnNext').disabled = (index === traceSteps.length - 1);
+    }
+
+    // Initialize/Re-run the whole search algorithm
+    function initializeSearch() {
+      pausePlayback();
+
+      const searchResult = runSearch(currentAlgorithm, initialState);
+      traceSteps = searchResult.steps;
+
+      renderGoalBoard();
+      renderSolutionPath(searchResult.solutionPath);
+      renderTraceTable(traceSteps);
+
+      applyStep(0);
+      updateComparisonData();
+    }
+
+    // Switch algorithm
+    function selectAlgorithm(algo) {
+      currentAlgorithm = algo;
+      document.getElementById('btnAlgoBFS').classList.toggle('active', algo === 'BFS');
+      document.getElementById('btnAlgoDFS').classList.toggle('active', algo === 'DFS');
+      initializeSearch();
+    }
+
+    // Presets
+    function applyPreset(presetKey) {
+      const customGroup = document.getElementById('customInputGroup');
+      if (presetKey === 'custom') {
+        customGroup.style.display = 'flex';
+        return;
+      }
+      customGroup.style.display = 'none';
+
+      if (PRESETS[presetKey]) {
+        initialState = [...PRESETS[presetKey]];
+        initializeSearch();
+      }
+    }
+
+    // Custom State
+    function setCustomState() {
+      const val = document.getElementById('customStateInput').value;
+      const parts = val.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+      if (parts.length !== 9) {
+        alert('Vui lòng nhập đúng 9 chữ số từ 0 đến 8 cách nhau bằng dấu phẩy!');
+        return;
+      }
+      initialState = parts;
+      initializeSearch();
+    }
+
+    // Shuffle initial state with solvable random walks
+    function shuffleInitialState(steps = 4) {
+      let curr = [...GOAL_STATE];
+      for (let s = 0; s < steps; s++) {
+        const dummyNode = new PuzzleNode(curr);
+        const children = expandNode(dummyNode);
+        const rand = children[Math.floor(Math.random() * children.length)];
+        curr = [...rand.state];
+      }
+      initialState = curr;
+      document.getElementById('presetSelect').value = 'custom';
+      document.getElementById('customInputGroup').style.display = 'flex';
+      document.getElementById('customStateInput').value = curr.join(', ');
+      initializeSearch();
+    }
+
+    // Playback Controller
+    function togglePlayPause() {
+      if (isPlaying) {
+        pausePlayback();
+      } else {
+        startPlayback();
+      }
+    }
+
+    function startPlayback() {
+      if (currentStepIndex >= traceSteps.length - 1) {
+        currentStepIndex = 0;
+      }
+      isPlaying = true;
+      document.getElementById('playIcon').textContent = '⏸';
+      document.getElementById('playText').textContent = 'Tạm dừng';
+
+      playTimer = setInterval(() => {
+        if (currentStepIndex < traceSteps.length - 1) {
+          applyStep(currentStepIndex + 1);
+        } else {
+          pausePlayback();
+        }
+      }, stepDelay);
+    }
+
+    function pausePlayback() {
+      isPlaying = false;
+      if (playTimer) {
+        clearInterval(playTimer);
+        playTimer = null;
+      }
+      document.getElementById('playIcon').textContent = '▶';
+      document.getElementById('playText').textContent = 'Chạy tự động';
+    }
+
+    function stepNext() {
+      pausePlayback();
+      if (currentStepIndex < traceSteps.length - 1) {
+        applyStep(currentStepIndex + 1);
+      }
+    }
+
+    function stepPrev() {
+      pausePlayback();
+      if (currentStepIndex > 0) {
+        applyStep(currentStepIndex - 1);
+      }
+    }
+
+    function resetPlayback() {
+      pausePlayback();
+      applyStep(0);
+    }
+
+    function jumpToEnd() {
+      pausePlayback();
+      applyStep(traceSteps.length - 1);
+    }
+
+    // Speed Controls
+    function updateSpeed(val) {
+      stepDelay = parseInt(val, 10);
+      document.getElementById('speedValText').textContent = `${stepDelay} ms`;
+      if (isPlaying) {
+        pausePlayback();
+        startPlayback();
+      }
+    }
+
+    function setPresetSpeed(val) {
+      document.getElementById('speedSlider').value = val;
+      updateSpeed(val);
+    }
+
+    // Comparison modal updater
+    function updateComparisonData() {
+      const bfsRes = runSearch('BFS', initialState);
+      const dfsRes = runSearch('DFS', initialState);
+
+      const bfsMoves = bfsRes.solutionPath ? bfsRes.solutionPath.length - 1 : 'Không thấy';
+      const dfsMoves = dfsRes.solutionPath ? dfsRes.solutionPath.length - 1 : 'Không thấy';
+
+      const tbody = document.getElementById('comparisonTableBody');
+      tbody.innerHTML = `
+        <tr>
+          <td><strong>Số bước di chuyển (Moves)</strong></td>
+          <td style="color: var(--accent-emerald); font-weight: 700;">${bfsMoves} bước (TỐI ƯU NHẤT)</td>
+          <td style="color: ${dfsMoves === bfsMoves ? 'var(--accent-emerald)' : 'var(--accent-rose)'};">${dfsMoves} bước</td>
+        </tr>
+        <tr>
+          <td><strong>Tổng số step đã duyệt (Explored)</strong></td>
+          <td>${bfsRes.steps.length} nodes</td>
+          <td>${dfsRes.steps.length} nodes</td>
+        </tr>
+        <tr>
+          <td><strong>Cấu trúc Frontier sử dụng</strong></td>
+          <td>FIFO Queue (Hàng đợi)</td>
+          <td>LIFO Stack (Ngăn xếp)</td>
+        </tr>
+        <tr>
+          <td><strong>Đánh giá</strong></td>
+          <td style="color: #38bdf8;">Đảm bảo nghiệm ngắn nhất</td>
+          <td style="color: #c084fc;">Duyệt sâu trước, dễ vòng vèo</td>
+        </tr>
+      `;
+    }
+
+    // Modal Helpers
+    function openModal(id) {
+      document.getElementById(id).style.display = 'flex';
+    }
+    function closeModal(id) {
+      document.getElementById(id).style.display = 'none';
+    }
+
+    // Copy Trace Table data as Markdown
+    function copyTableData() {
+      let md = `| Step | Node State | Action | Frontier Size | Explored Size | Goal Test |\n|---|---|---|---|---|---|\n`;
+      traceSteps.forEach(s => {
+        md += `| ${s.step} | ${formatState(s.node.state)} | ${s.action} | ${s.frontierSnapshot.length} | ${s.exploredSnapshot.length} | ${s.isGoal ? 'TRUE' : 'False'} |\n`;
+      });
+      navigator.clipboard.writeText(md).then(() => {
+        alert('Đã sao chép bảng vết tìm kiếm (Markdown) vào Clipboard!');
+      });
+    }
+
+    // Keyboard Shortcuts (Space: Play/Pause, ArrowLeft: Prev, ArrowRight: Next)
+    window.addEventListener('keydown', (e) => {
+      if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT') return;
+      if (e.code === 'Space') {
+        e.preventDefault();
+        togglePlayPause();
+      } else if (e.code === 'ArrowRight') {
+        stepNext();
+      } else if (e.code === 'ArrowLeft') {
+        stepPrev();
+      }
+    });
+
+    // Close modals on overlay click
+    window.onclick = function(event) {
+      if (event.target.classList.contains('modal-overlay')) {
+        event.target.style.display = 'none';
+      }
+    };
+
+    // Initialize application on load
+    window.onload = function() {
+      initializeSearch();
+    };
+  </script>
+</body>
+</html>

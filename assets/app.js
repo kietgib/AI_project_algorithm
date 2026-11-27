@@ -7,6 +7,66 @@ class SearchNode {
   }
 }
 
+class MinHeap {
+  constructor() {
+    this.heap = [];
+    this.order = 0;
+  }
+  push(node) {
+    this.heap.push({ cost: node.pathCost, order: this.order++, node });
+    this._up(this.heap.length - 1);
+  }
+  pop() {
+    if (this.heap.length === 0) return null;
+    const top = this.heap[0];
+    const bottom = this.heap.pop();
+    if (this.heap.length > 0) {
+      this.heap[0] = bottom;
+      this._down(0);
+    }
+    return top.node;
+  }
+  peek() {
+    return this.heap.length > 0 ? this.heap[0].node : null;
+  }
+  size() {
+    return this.heap.length;
+  }
+  _up(i) {
+    while (i > 0) {
+      const p = (i - 1) >> 1;
+      if (this._compare(i, p) < 0) {
+        [this.heap[i], this.heap[p]] = [this.heap[p], this.heap[i]];
+        i = p;
+      } else break;
+    }
+  }
+  _down(i) {
+    const len = this.heap.length;
+    while ((i << 1) + 1 < len) {
+      let left = (i << 1) + 1;
+      let right = left + 1;
+      let best = left;
+      if (right < len && this._compare(right, left) < 0) best = right;
+      if (this._compare(best, i) < 0) {
+        [this.heap[i], this.heap[best]] = [this.heap[best], this.heap[i]];
+        i = best;
+      } else break;
+    }
+  }
+  _compare(a, b) {
+    if (this.heap[a].cost !== this.heap[b].cost) {
+      return this.heap[a].cost - this.heap[b].cost;
+    }
+    return this.heap[a].order - this.heap[b].order;
+  }
+  toSortedArray() {
+    return [...this.heap]
+      .sort((a, b) => a.cost !== b.cost ? a.cost - b.cost : a.order - b.order)
+      .map(x => x.node);
+  }
+}
+
 const PROBLEMS = {
   '8puzzle': {
     id: '8puzzle',
@@ -15,7 +75,8 @@ const PROBLEMS = {
     defaultState: [1, 2, 3, 4, 0, 6, 7, 5, 8],
     goalState: [1, 2, 3, 4, 5, 6, 7, 8, 0],
     presets: [
-      { id: 'default', name: '★ Đề bài mặc định', state: [1, 2, 3, 4, 0, 6, 7, 5, 8] }
+      { id: 'default', name: '★ Đề bài BFS/DFS: (1, 2, 3, 4, 0, 6, 7, 5, 8)', state: [1, 2, 3, 4, 0, 6, 7, 5, 8] },
+      { id: 'ucs_notebook', name: '★ Đề bài UCS: (1, 3, 6, 5, 0, 2, 4, 7, 8)', state: [1, 3, 6, 5, 0, 2, 4, 7, 8] }
     ],
     formatState: (state) => `(${state.join(', ')})`,
     stateToKey: (state) => state.join(','),
@@ -25,18 +86,23 @@ const PROBLEMS = {
       }
       return true;
     },
-    expand: function(node) {
+    expand: function(node, algo) {
       const children = [];
       const state = node.state;
       const zeroIdx = state.indexOf(0);
       const row = Math.floor(zeroIdx / 3);
       const col = zeroIdx % 3;
 
-      const actions = [
-        { dr: -1, dc: 0, name: 'UP' },
-        { dr: 1, dc: 0, name: 'DOWN' },
-        { dr: 0, dc: -1, name: 'LEFT' },
-        { dr: 0, dc: 1, name: 'RIGHT' }
+      const actions = (algo === 'UCS') ? [
+        { dr: -1, dc: 0, name: 'UP', cost: 1 },
+        { dr: 1, dc: 0, name: 'DOWN', cost: 1 },
+        { dr: 0, dc: -1, name: 'LEFT', cost: 2 },
+        { dr: 0, dc: 1, name: 'RIGHT', cost: 2 }
+      ] : [
+        { dr: -1, dc: 0, name: 'UP', cost: 1 },
+        { dr: 1, dc: 0, name: 'DOWN', cost: 1 },
+        { dr: 0, dc: -1, name: 'LEFT', cost: 1 },
+        { dr: 0, dc: 1, name: 'RIGHT', cost: 1 }
       ];
 
       for (const m of actions) {
@@ -48,7 +114,7 @@ const PROBLEMS = {
           nextState[zeroIdx] = nextState[newIdx];
           nextState[newIdx] = 0;
 
-          children.push(new SearchNode(nextState, node, node.pathCost + 1, m.name));
+          children.push(new SearchNode(nextState, node, node.pathCost + m.cost, m.name));
         }
       }
       return children;
@@ -96,17 +162,20 @@ const PROBLEMS = {
     isGoal: function(state) {
       return state[0] === this.goalState[0] && state[1] === this.goalState[1] && state[2] === this.goalState[2];
     },
-    expand: function(node) {
+    expand: function(node, algo) {
       const children = [];
       const [pos, roomA, roomB] = node.state;
       const actions = [];
 
+      const suckCost = (algo === 'UCS') ? 2 : 1;
+      const moveCost = 1;
+
       if (pos === 'A') {
-        if (roomA === 'D') actions.push('Suck');
-        actions.push('Right');
+        if (roomA === 'D') actions.push({ name: 'SUCK', cost: suckCost });
+        actions.push({ name: 'RIGHT', cost: moveCost });
       } else if (pos === 'B') {
-        if (roomB === 'D') actions.push('Suck');
-        actions.push('Left');
+        if (roomB === 'D') actions.push({ name: 'SUCK', cost: suckCost });
+        actions.push({ name: 'LEFT', cost: moveCost });
       }
 
       for (const act of actions) {
@@ -114,16 +183,16 @@ const PROBLEMS = {
         let nA = roomA;
         let nB = roomB;
 
-        if (act === 'Suck') {
+        if (act.name === 'SUCK') {
           if (pos === 'A') nA = 'C';
           else nB = 'C';
-        } else if (act === 'Right') {
+        } else if (act.name === 'RIGHT') {
           nPos = 'B';
-        } else if (act === 'Left') {
+        } else if (act.name === 'LEFT') {
           nPos = 'A';
         }
 
-        children.push(new SearchNode([nPos, nA, nB], node, node.pathCost + 1, act));
+        children.push(new SearchNode([nPos, nA, nB], node, node.pathCost + act.cost, act.name));
       }
       return children;
     },
@@ -179,16 +248,100 @@ function getCurrentProblem() {
 }
 
 function runSearch(algo, startState, problem) {
+  const MAX_SPACE_SAFETY = 200000;
+  const steps = [];
+  let finalNode = null;
+
+  if (algo === 'UCS') {
+    const initialNode = new SearchNode([...startState], null, 0, 'START');
+    const heap = new MinHeap();
+    heap.push(initialNode);
+    const explored = new Set();
+    const bestCost = new Map();
+    bestCost.set(problem.stateToKey(startState), 0);
+    let stepCounter = 1;
+
+    while (heap.size() > 0 && steps.length < MAX_SPACE_SAFETY) {
+      const currentNode = heap.pop();
+      const currKey = problem.stateToKey(currentNode.state);
+
+      if (currentNode.pathCost !== bestCost.get(currKey)) {
+        continue;
+      }
+
+      const goalReached = problem.isGoal(currentNode.state);
+      const fCount = heap.size();
+
+      const sampleFrontier = (stepCounter <= 200 || goalReached)
+        ? heap.toSortedArray().slice(0, 30).map(n => ({ state: n.state, action: n.action, cost: n.pathCost }))
+        : [];
+
+      steps.push({
+        step: stepCounter,
+        node: currentNode,
+        action: currentNode.action,
+        cost: currentNode.pathCost,
+        isGoal: goalReached,
+        frontierSnapshot: sampleFrontier,
+        frontierCount: fCount,
+        exploredCount: explored.size,
+        parentState: currentNode.parent ? currentNode.parent.state : null
+      });
+
+      if (goalReached) {
+        finalNode = currentNode;
+        break;
+      }
+
+      explored.add(currKey);
+
+      const children = problem.expand(currentNode, 'UCS');
+      for (const child of children) {
+        const childKey = problem.stateToKey(child.state);
+        const newCost = child.pathCost;
+
+        if (!explored.has(childKey)) {
+          if (!bestCost.has(childKey) || newCost < bestCost.get(childKey)) {
+            bestCost.set(childKey, newCost);
+            heap.push(child);
+          }
+        }
+      }
+
+      stepCounter++;
+    }
+
+    let path = null;
+    if (finalNode) {
+      path = [];
+      let curr = finalNode;
+      while (curr !== null) {
+        path.push({
+          state: curr.state,
+          action: curr.action,
+          cost: curr.pathCost,
+          parentState: curr.parent ? curr.parent.state : null
+        });
+        curr = curr.parent;
+      }
+      path.reverse();
+    }
+
+    return {
+      steps,
+      solutionPath: path,
+      finalNode,
+      totalExplored: explored.size
+    };
+  }
+
+  // BFS & DFS
   const initialNode = new SearchNode([...startState], null, 0, 'START');
   let frontier = [initialNode];
   let head = 0;
   const explored = new Set();
   const frontierSet = new Set([problem.stateToKey(startState)]);
-
-  const steps = [];
   let stepCounter = 1;
-  let finalNode = null;
-  const MAX_SPACE_SAFETY = 200000;
 
   while (head < frontier.length && steps.length < MAX_SPACE_SAFETY) {
     const currentNode = (algo === 'BFS') ? frontier[head++] : frontier.pop();
@@ -228,7 +381,7 @@ function runSearch(algo, startState, problem) {
 
     explored.add(currKey);
 
-    const children = problem.expand(currentNode);
+    const children = problem.expand(currentNode, algo);
     const orderedChildren = (algo === 'DFS') ? [...children].reverse() : children;
 
     for (const child of orderedChildren) {
@@ -317,7 +470,7 @@ function renderFrontierList(frontierSnapshot, totalCount, algo, problem) {
 
   frontierSnapshot.forEach((item, idx) => {
     const row = document.createElement('div');
-    const isNext = (algo === 'BFS' && idx === 0) || (algo === 'DFS' && idx === frontierSnapshot.length - 1);
+    const isNext = (algo === 'BFS' && idx === 0) || (algo === 'DFS' && idx === frontierSnapshot.length - 1) || (algo === 'UCS' && idx === 0);
     row.className = `list-item ${isNext ? 'highlight-next' : ''}`;
 
     row.innerHTML = `
@@ -383,7 +536,7 @@ function renderEndpoint(solPath, isGoalCurrent, currentStep, problem) {
     return;
   }
 
-  pathCountBadge.textContent = `${solPath.length} steps (${solPath.length - 1} di chuyển)`;
+  pathCountBadge.textContent = `${solPath.length} steps (${solPath.length - 1} di chuyển, Chi phí: ${solPath[solPath.length - 1].cost})`;
 
   solPath.forEach((p, idx) => {
     const item = document.createElement('div');
@@ -508,7 +661,13 @@ function onProblemChange(problemId) {
 function onAlgorithmChange(algoName) {
   currentAlgorithm = algoName;
   const badge = document.getElementById('frontierTypeBadge');
-  badge.textContent = (algoName === 'BFS') ? 'FIFO Queue' : 'LIFO Stack';
+  if (algoName === 'BFS') {
+    badge.textContent = 'FIFO Queue';
+  } else if (algoName === 'DFS') {
+    badge.textContent = 'LIFO Stack';
+  } else if (algoName === 'UCS') {
+    badge.textContent = 'Priority Queue (Min-Heap g)';
+  }
   initializeSearch();
 }
 
@@ -527,9 +686,7 @@ function onPresetChange(presetId) {
   const preset = problem.presets.find(p => p.id === presetId);
   if (preset) {
     currentState = [...preset.state];
-    document.getElementById('customStateInput').value = (currentProblemId === 'vacuum')
-      ? preset.state.join(', ')
-      : preset.state.join(', ');
+    document.getElementById('customStateInput').value = preset.state.join(', ');
     initializeSearch();
   }
 }
@@ -768,7 +925,7 @@ function copyTableData() {
 }
 
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { SearchNode, PROBLEMS, runSearch, countInversions, parseStateInput, parseVacuumInput };
+  module.exports = { SearchNode, MinHeap, PROBLEMS, runSearch, countInversions, parseStateInput, parseVacuumInput };
 }
 
 if (typeof window !== 'undefined') {

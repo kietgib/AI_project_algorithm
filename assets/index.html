@@ -16,12 +16,12 @@
           TRẦN GIA KIỆT 
           <span class="student-badge">MSSV: 24110103</span>
         </h1>
-        <p class="app-subtitle" id="appSubtitle">Thuật toán tìm kiếm BFS & DFS</p>
+        <p class="app-subtitle" id="appSubtitle">Mô phỏng thuật toán tìm kiếm BFS, DFS & UCS</p>
       </div>
 
       <div class="header-actions">
         <button class="btn" onclick="openModal('compareModal')">
-           So sánh BFS vs DFS
+          So sánh BFS, DFS & UCS
         </button>
         <button class="btn" onclick="openModal('codeModal')">
            9 Hàm Python (Colab)
@@ -44,12 +44,13 @@
         </select>
       </div>
 
-      <!-- 2. Combo Box Chọn Thuật toán (BFS & DFS) -->
+      <!-- 2. Combo Box Chọn Thuật toán (BFS, DFS, UCS) -->
       <div class="control-item">
         <span class="control-label">Thuật toán:</span>
         <select id="algoSelect" onchange="onAlgorithmChange(this.value)">
           <option value="BFS" selected>BFS (Hàng đợi FIFO)</option>
           <option value="DFS">DFS (Ngăn xếp LIFO)</option>
+          <option value="UCS">UCS (Chi phí tối ưu - Min-Heap)</option>
         </select>
       </div>
 
@@ -216,7 +217,7 @@
   <div class="modal-backdrop" id="compareModal">
     <div class="modal-box">
       <div class="modal-head">
-        <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary);">So sánh BFS và DFS</h3>
+        <h3 style="font-size: 1rem; font-weight: 700; color: var(--primary);">So sánh BFS, DFS và UCS</h3>
         <button class="btn" onclick="closeModal('compareModal')" style="padding: 0.2rem 0.5rem;">✕</button>
       </div>
       <div class="modal-content">
@@ -224,8 +225,9 @@
           <thead>
             <tr>
               <th>Đặc điểm</th>
-              <th>BFS (Breadth-First Search)</th>
-              <th>DFS (Depth-First Search)</th>
+              <th>BFS (Breadth-First)</th>
+              <th>DFS (Depth-First)</th>
+              <th>UCS (Uniform-Cost)</th>
             </tr>
           </thead>
           <tbody>
@@ -233,21 +235,25 @@
               <td><strong>Cấu trúc Frontier</strong></td>
               <td>Hàng đợi FIFO (Queue)</td>
               <td>Ngăn xếp LIFO (Stack)</td>
+              <td>Hàng đợi ưu tiên (Min-Heap theo g)</td>
             </tr>
             <tr>
               <td><strong>Tính tối ưu</strong></td>
-              <td><span style="color:#059669; font-weight:bold;">Tối ưu</span> (tìm đường ngắn nhất)</td>
+              <td><span style="color:#059669; font-weight:bold;">Tối ưu</span> (ít bước nhất)</td>
               <td><span style="color:#dc2626; font-weight:bold;">Không tối ưu</span> (dễ vòng vèo)</td>
+              <td><span style="color:#059669; font-weight:bold;">Tối ưu chi phí</span> (tổng g nhỏ nhất)</td>
             </tr>
             <tr>
               <td><strong>Cơ chế mở rộng</strong></td>
-              <td>Duyệt theo từng tầng độ sâu</td>
-              <td>Đi sâu theo một nhánh trước</td>
+              <td>Theo từng tầng độ sâu</td>
+              <td>Đi sâu theo một nhánh</td>
+              <td>Node có g(n) thấp nhất trước</td>
             </tr>
             <tr>
-              <td><strong>Đồ thị có chu trình</strong></td>
-              <td>Cần tập <code>explored</code></td>
-              <td>Cần tập <code>explored</code> để tránh lặp vô tận</td>
+              <td><strong>Chi phí bước (c)</strong></td>
+              <td>Mặc định c = 1</td>
+              <td>Mặc định c = 1</td>
+              <td>Hỗ trợ chi phí bước tùy ý (c >= 0)</td>
             </tr>
           </tbody>
         </table>
